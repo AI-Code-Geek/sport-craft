@@ -33,13 +33,10 @@ const nextConfig: NextConfig = {
 	async headers() {
 		return [{ source: "/:path*", headers: securityHeaders }];
 	},
-	// This app never uses next/image (no photo uploads — see docs/DEVPLAN.md's non-goals). `sharp`
-	// ships native .node bindings per-platform that esbuild can't bundle into a Cloudflare Worker (V8
-	// isolate, no native binary loading). `images.unoptimized` alone stops it from being CALLED at
-	// runtime but doesn't stop Next's build from still trying to BUNDLE it — `serverExternalPackages`
-	// is what actually keeps esbuild from touching it (marks it external instead of inlining it).
+	// This app never uses next/image (no photo uploads — see docs/DEVPLAN.md's non-goals), so Next's
+	// image optimizer (and its `sharp` dependency, which ships native per-platform .node bindings that
+	// can't be bundled into a Cloudflare Worker) is never reached at runtime.
 	images: { unoptimized: true },
-	serverExternalPackages: ["sharp"],
 };
 
 export default nextConfig;
