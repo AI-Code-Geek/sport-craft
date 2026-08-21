@@ -1,6 +1,6 @@
 {
-	"name": "estancia-volleyball",
-	"description": "Community volleyball tournament manager — poll, captains, position-based auction, schedule, live scoring, playoffs.",
+	"name": "sportcraft",
+	"description": "Multi-sport community league platform — org/tournament management, poll signup, captain draft, position-based auction, scheduling, live scoring, playoffs.",
 	"cloudflare": {
 		"label": "Next.js Framework Starter",
 		"products": [
@@ -11,8 +11,6 @@
 	},
 	"dependencies": {
 		"@opennextjs/cloudflare": "1.14.0",
-		"@tailwindcss/oxide-win32-x64-msvc": "^4.1.17",
-		"lightningcss-win32-x64-msvc": "^1.30.2",
 		"next": "16.3.1",
 		"react": "19.2.1",
 		"react-dom": "19.2.1"
