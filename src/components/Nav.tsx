@@ -145,7 +145,7 @@ export function Nav() {
 							<span className="hidden text-xs text-muted lg:inline">{user.name}</span>
 						</span>
 					) : null}
-					{tournamentId ? (
+					{communityId && features?.notifications !== false ? (
 						<div className="relative">
 							<button
 								onClick={toggleBell}
