@@ -1,7 +1,0 @@
-{
-  "name": "sharp-stub",
-  "version": "1.0.0",
-  "description": "Local stub that replaces the real `sharp` package for this deployment. This app never uses next/image (images.unoptimized: true in next.config.ts), so the real `sharp` — Next's optional dependency for server-side image optimization — is never actually invoked. The real package ships per-platform native .node binaries that Cloudflare Workers' esbuild bundling step cannot handle, so it's overridden to this stub via package.json's \"overrides\" field instead of being installed at all.",
-  "main": "index.js",
-  "private": true
-}
