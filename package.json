@@ -28,6 +28,9 @@
 		"wrangler": "^4.88.0"
 	},
 	"private": true,
+	"overrides": {
+		"sharp": "file:./vendor/sharp-stub"
+	},
 	"scripts": {
 		"build": "next build",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
