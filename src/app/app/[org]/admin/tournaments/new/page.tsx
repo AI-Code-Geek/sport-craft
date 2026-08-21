@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { createTournament } from "@/lib/api-client";
 import { Card } from "@/components/ui";
 
 export default function NewTournamentPage() {
 	const router = useRouter();
+	const { org } = useParams<{ org: string }>();
 	const [name, setName] = useState("Fall Volleyball League 2026");
 	const [maxTeams, setMaxTeams] = useState(6);
 	const [teamSize, setTeamSize] = useState(6);
@@ -26,13 +27,13 @@ export default function NewTournamentPage() {
 		});
 		setBusy(false);
 		if (!ok) return setError(data.error ?? "Failed to create tournament.");
-		router.push("/app/admin/org-admins");
+		router.push(`/app/${org}/admin`);
 	}
 
 	return (
 		<div className="flex flex-col gap-4">
 			<h1 className="text-xl font-bold">Create a new tournament</h1>
-			<p className="text-sm text-muted">Super Admin only. Once created, assign an Org Admin committee to run it day to day.</p>
+			<p className="text-sm text-muted">This becomes your org&apos;s active tournament immediately.</p>
 
 			<Card title="Core variables" className="max-w-xl">
 				<div className="flex flex-col gap-3">

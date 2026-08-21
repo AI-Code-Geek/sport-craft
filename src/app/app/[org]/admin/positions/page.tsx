@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { fetchMe, getPositions, assignPosition, finalizePositions } from "@/lib/api-client";
 import type { PositionPlayerView } from "@/lib/api-client";
 import { Card, Meter } from "@/components/ui";
 
 export default function AdminPositionsPage() {
 	const router = useRouter();
+	const { org } = useParams<{ org: string }>();
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [players, setPlayers] = useState<PositionPlayerView[]>([]);
 	const [categories, setCategories] = useState<string[]>([]);
@@ -48,7 +49,7 @@ export default function AdminPositionsPage() {
 		setError("");
 		const { ok, data } = await finalizePositions(tournamentId);
 		if (!ok) return setError(data.error ?? "Buckets aren't full yet.");
-		router.push("/app/admin/auction");
+		router.push(`/app/${org}/admin/auction`);
 	}
 
 	const byCategory = useMemo(() => {

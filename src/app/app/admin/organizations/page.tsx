@@ -38,11 +38,11 @@ export default function OrganizationsConsolePage() {
 		fetchMe().then(({ data }) => setMyUserId(data.user?.userid ?? null));
 	}, []);
 
-	async function goToDashboard(communityId: string) {
+	async function goToDashboard(communityId: string, slug: string) {
 		setSwitching(communityId);
 		try {
 			await switchOrg(communityId);
-			window.location.href = "/app/admin";
+			window.location.href = `/app/${slug}/admin`;
 		} finally {
 			setSwitching(null);
 		}
@@ -70,9 +70,9 @@ export default function OrganizationsConsolePage() {
 				return;
 			}
 			// You're added as this org's Org Admin, but your session cookie still points at whatever was
-			// active before — switch into it now so /app/admin actually shows the new org immediately.
+			// active before — switch into it now so the admin console actually shows the new org immediately.
 			await switchOrg(data.community.id);
-			window.location.href = "/app/admin";
+			window.location.href = `/app/${data.community.slug}/admin`;
 		} finally {
 			setCreating(false);
 		}
@@ -185,7 +185,7 @@ export default function OrganizationsConsolePage() {
 									<button
 										className="font-semibold text-brand underline-offset-2 hover:underline"
 										disabled={switching === community.id}
-										onClick={() => goToDashboard(community.id)}
+										onClick={() => goToDashboard(community.id, community.slug)}
 									>
 										{community.name}
 									</button>{" "}
@@ -197,7 +197,7 @@ export default function OrganizationsConsolePage() {
 									</div>
 								</div>
 								<div className="flex items-center gap-2">
-									<button className="btn-secondary" disabled={switching === community.id} onClick={() => goToDashboard(community.id)}>
+									<button className="btn-secondary" disabled={switching === community.id} onClick={() => goToDashboard(community.id, community.slug)}>
 										{switching === community.id ? "Opening…" : "Go to dashboard →"}
 									</button>
 									<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>

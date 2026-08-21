@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { fetchMe, getSchedule, getTeams } from "@/lib/api-client";
 import type { TeamView } from "@/lib/api-client";
 import { Card, TeamChip, StatusBadge } from "@/components/ui";
@@ -8,6 +9,7 @@ import { fmtDateTime } from "@/lib/format";
 import type { Match } from "@/lib/types";
 
 export default function SchedulePage() {
+	const { org } = useParams<{ org: string }>();
 	const [matches, setMatches] = useState<Match[]>([]);
 	const [teams, setTeams] = useState<TeamView[]>([]);
 	const [teamFilter, setTeamFilter] = useState("");
@@ -77,7 +79,7 @@ export default function SchedulePage() {
 								const a = teamOf.get(m.teamAId);
 								const b = teamOf.get(m.teamBId);
 								return (
-									<tr key={m.id} className="cursor-pointer border-t border-border hover:bg-surface-2" onClick={() => (window.location.href = `/app/matches/${m.id}`)}>
+									<tr key={m.id} className="cursor-pointer border-t border-border hover:bg-surface-2" onClick={() => (window.location.href = `/app/${org}/matches/${m.id}`)}>
 										<td className="py-2 pr-2 text-xs">{fmtDateTime(m.scheduledAt)}</td>
 										<td className="py-2 pr-2">
 											<div className="flex items-center gap-1.5">
