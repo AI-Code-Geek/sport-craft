@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchMe, getTournament, updateTournament } from "@/lib/api-client";
+import { useParams, useRouter } from "next/navigation";
+import { fetchMe, getTournament, updateTournament, deleteTournament, exportTournamentUrl } from "@/lib/api-client";
 import { Card, LifecycleStepper } from "@/components/ui";
 import { fmtDateTime } from "@/lib/format";
 import type { Tournament } from "@/lib/types";
 
 export default function TournamentSettingsPage() {
+	const { org } = useParams<{ org: string }>();
+	const router = useRouter();
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [t, setT] = useState<Tournament | null>(null);
 	const [saved, setSaved] = useState(false);
+	const [confirmName, setConfirmName] = useState("");
+	const [deleting, setDeleting] = useState(false);
+	const [guidelinesSaved, setGuidelinesSaved] = useState(false);
+	const [exporting, setExporting] = useState(false);
 
 	useEffect(() => {
 		fetchMe().then(async ({ data }) => {
@@ -27,6 +34,41 @@ export default function TournamentSettingsPage() {
 		});
 		setSaved(true);
 		setTimeout(() => setSaved(false), 2000);
+	}
+
+	async function saveGuidelines() {
+		if (!tournamentId || !t) return;
+		await updateTournament(tournamentId, { guidelines: t.guidelines ?? "" });
+		setGuidelinesSaved(true);
+		setTimeout(() => setGuidelinesSaved(false), 2000);
+	}
+
+	async function exportJson() {
+		if (!tournamentId || !t) return;
+		setExporting(true);
+		try {
+			const res = await fetch(exportTournamentUrl(tournamentId));
+			const blob = await res.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `${t.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-export.json`;
+			a.click();
+			URL.revokeObjectURL(url);
+		} finally {
+			setExporting(false);
+		}
+	}
+
+	async function removeTournament() {
+		if (!tournamentId || !t) return;
+		setDeleting(true);
+		try {
+			await deleteTournament(tournamentId);
+			router.push(`/app/${org}/admin`);
+		} finally {
+			setDeleting(false);
+		}
 	}
 
 	if (!t) return <Card><p className="text-sm text-muted">Loading…</p></Card>;
@@ -75,8 +117,53 @@ export default function TournamentSettingsPage() {
 					{t.pollOpenedAt ? <div className="mb-1 text-xs text-muted">Poll opened: {fmtDateTime(t.pollOpenedAt)}</div> : null}
 					{t.pollClosedAt ? <div className="mb-3 text-xs text-muted">Poll closed: {fmtDateTime(t.pollClosedAt)}</div> : null}
 					<LifecycleStepper status={t.status} />
+					<div className="mt-3 border-t border-border pt-3">
+						<button className="btn-secondary w-fit" disabled={exporting} onClick={exportJson}>
+							{exporting ? "Exporting…" : "Export as JSON →"}
+						</button>
+						<p className="mt-1 text-xs text-muted">Full state — poll, rosters, auction log, schedule, results, standings, notifications.</p>
+					</div>
 				</Card>
 			</div>
+
+			<Card title="Rules & guidelines">
+				<p className="mb-3 text-sm text-muted">
+					Shown to every player on the tournament home page once it&apos;s open (not while still in draft).
+					Use it for match rules, code of conduct, forfeiture policy, whatever players need to see.
+				</p>
+				<textarea
+					className="input min-h-40 w-full"
+					placeholder="e.g. Best of 3 sets to 25, win by 2. Teams must have 4 players on court to start. Forfeits after 10 min grace period…"
+					value={t.guidelines ?? ""}
+					onChange={(e) => setT({ ...t, guidelines: e.target.value })}
+				/>
+				<div className="mt-2 flex items-center gap-2">
+					<button className="btn-primary w-fit" onClick={saveGuidelines}>Save guidelines</button>
+					{guidelinesSaved ? <span className="text-xs text-ok">Saved.</span> : null}
+				</div>
+			</Card>
+
+			<Card title="Danger zone" className="border-bad/40">
+				<p className="mb-3 text-sm text-muted">
+					Permanently deletes this tournament and everything tied to it — poll, teams, positions,
+					auction, schedule, and notifications. This cannot be undone.
+				</p>
+				<div className="flex flex-wrap items-center gap-2">
+					<input
+						className="input w-auto"
+						placeholder={`Type "${t.name}" to confirm`}
+						value={confirmName}
+						onChange={(e) => setConfirmName(e.target.value)}
+					/>
+					<button
+						className="btn-danger"
+						disabled={deleting || confirmName !== t.name}
+						onClick={removeTournament}
+					>
+						{deleting ? "Deleting…" : "Delete tournament"}
+					</button>
+				</div>
+			</Card>
 		</div>
 	);
 }

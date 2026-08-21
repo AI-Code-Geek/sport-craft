@@ -6,7 +6,7 @@
  * Who may manage a tournament is derived from the org's own Org Admin membership (see authz.ts /
  * user-store.ts) — there is no per-tournament assignment list any more.
  */
-import { kvGetJSON, kvPutJSON, idxAppend, idxList } from "./kv";
+import { kvGetJSON, kvPutJSON, kvDelete, idxAppend, idxList, idxRemove } from "./kv";
 import { genTournamentId } from "./ids";
 import type { Tournament, TournamentStatus } from "./types";
 
@@ -45,6 +45,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
 		pollClosedAt: null,
 		createdBy: input.createdBy,
 		createdAt: new Date().toISOString(),
+		guidelines: null,
 	};
 	await kvPutJSON(key(t.id), t);
 	await idxAppend(communityIndex(input.communityId), t.id);
@@ -78,4 +79,26 @@ export async function setTournamentStatus(id: string, status: TournamentStatus):
 	t.status = status;
 	await putTournament(t);
 	return t;
+}
+
+/**
+ * Deletes a tournament and every KV blob scoped to it (poll, teams, positions, auction, matches,
+ * bracket, notifications) — irreversible. If it was the community's active (most recent) tournament,
+ * whichever one is now last in the index becomes active, same as if this one had never existed.
+ */
+export async function deleteTournament(id: string): Promise<boolean> {
+	const t = await getTournament(id);
+	if (!t) return false;
+	await Promise.all([
+		kvDelete(key(id)),
+		kvDelete(`poll:${id}`),
+		kvDelete(`teams:${id}`),
+		kvDelete(`positions:${id}`),
+		kvDelete(`auction:${id}`),
+		kvDelete(`matches:${id}`),
+		kvDelete(`bracket:${id}`),
+		kvDelete(`notifications:${id}`),
+		idxRemove(communityIndex(t.communityId), id),
+	]);
+	return true;
 }

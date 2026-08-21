@@ -78,6 +78,16 @@ export default function OrgHomePage() {
 	const canManage = role?.canManage ?? false;
 	const isCaptain = role?.captainTeamId != null;
 
+	// A tournament in "draft" (poll not opened yet) is only visible to whoever's building it — everyone
+	// else sees the same "nothing to see yet" state as before it existed, not its name/status/stepper.
+	if (!canManage && tournament.status === "draft") {
+		return (
+			<Card>
+				<p className="text-sm text-muted">No tournament open yet. Check back once your Org Admin opens signup.</p>
+			</Card>
+		);
+	}
+
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-wrap items-end justify-between gap-2">
@@ -90,6 +100,12 @@ export default function OrgHomePage() {
 			<Card title="Tournament progress">
 				<LifecycleStepper status={tournament.status} />
 			</Card>
+
+			{tournament.guidelines ? (
+				<Card title="Rules & guidelines">
+					<p className="whitespace-pre-wrap text-sm">{tournament.guidelines}</p>
+				</Card>
+			) : null}
 
 			<div className="grid gap-4 md:grid-cols-2">
 				<Card title="Your next action">
