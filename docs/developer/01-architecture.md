@@ -11,26 +11,82 @@
 - Session auth is a **signed httpOnly cookie** (HMAC-SHA256, Web Crypto only — runs identically in
   Next's Edge middleware and in the Worker). See [`03-auth-and-roles.md`](./03-auth-and-roles.md).
 
-## Request flow
+## System diagram
 
 ```
-Browser
-  │  fetch("/api/...", { credentials: "include" })
-  ▼
-middleware.ts  ── verifies session cookie signature+expiry (no KV read)
-  │                also blocks cross-origin POST/PATCH (CSRF check)
-  ▼
-Route handler (src/app/api/**/route.ts)
-  │  readSession() → Session { userid, isSuperAdmin, communityId, role, exp }
-  │  authz check (isSuperAdmin / isOrgAdminOf / canManageTournament)
-  ▼
-Domain store (src/lib/*-store.ts) ── kvGetJSON / kvPutJSON
-  ▼
-Cloudflare KV (real, disk-persisted Miniflare KV even under plain `next dev` — see 04-local-development.md)
+                                   ┌─────────────────────────────┐
+                                   │           Browser            │
+                                   │                               │
+                                   │  landing page (login / join /  │
+                                   │  request-org)                  │
+                                   │  participant pages (poll,      │
+                                   │  teams, auction, schedule, ...) │
+                                   │  admin console (Org Admin /     │
+                                   │  Super Admin)                  │
+                                   └───────────────┬───────────────┘
+                                                    │  fetch(), credentials: "include"
+                                                    │  signed httpOnly session cookie
+                                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                     Cloudflare Workers  (Next.js via OpenNext)                      ║
+║                                                                                       ║
+║   ┌─────────────────────────────────────────────────────────────────────────────┐   ║
+║   │  middleware.ts  (Edge)                                                       │   ║
+║   │    • verify session cookie signature + expiry   — NO KV read                │   ║
+║   │    • block cross-origin POST/PATCH (CSRF)                                   │   ║
+║   │    • /api/auth/* and POST /api/organizations/requests stay public           │   ║
+║   └───────────────────────────────────┬─────────────────────────────────────────┘   ║
+║                                       ▼                                              ║
+║   ┌─────────────────────────────────────────────────────────────────────────────┐   ║
+║   │  Route handlers   src/app/api/**/route.ts   (the only thing that touches KV) │   ║
+║   │    readSession() → { userid, isSuperAdmin, communityId, role, exp }          │   ║
+║   │    authz check    → isSuperAdmin / isOrgAdminOf / canManageTournament        │   ║
+║   └───────────────────────────────────┬─────────────────────────────────────────┘   ║
+║                                       ▼                                              ║
+║   ┌─────────────────────────────────────────────────────────────────────────────┐   ║
+║   │  Domain stores   src/lib/*-store.ts   (one file per entity)                 │   ║
+║   │    user-store · community-store · org-request-store · tournament-store     │   ║
+║   │    poll-store · team-store · position-store · auction-store · match-store   │   ║
+║   │    bracket-store · notification-store · standings.ts (pure fn, no store)    │   ║
+║   └───────────────────────────────────┬─────────────────────────────────────────┘   ║
+╚═══════════════════════════════════════╪═════════════════════════════════════════════╝
+                                        │  kvGetJSON / kvPutJSON (JSON blobs)
+                                        ▼
+                     ┌─────────────────────────────────────────────┐
+                     │   Cloudflare KV  — ONE namespace, no DB      │
+                     │   (real + disk-persisted even under          │
+                     │    plain `next dev` — see 04, initOpenNext-   │
+                     │    CloudflareForDev())                        │
+                     │                                                │
+                     │   user:<id>          community:<id>            │
+                     │   idx:email:<email>  org-request:<id>          │
+                     │   tournament:<id>    poll:<tid> teams:<tid>     │
+                     │   positions:<tid>    auction:<tid>              │
+                     │   matches:<tid>      bracket:<tid>              │
+                     │   notifications:<tid>  rl:<bucket>:<id>         │
+                     └────────────────────────────────────────────────┘
 ```
 
 Client components never talk to KV directly — every read/write goes through a typed wrapper in
-`src/lib/api-client.ts`, which calls the route handlers above.
+`src/lib/api-client.ts`, which calls the route handlers above. Full key list:
+[`02-data-model.md`](./02-data-model.md).
+
+## Multi-tenant shape, at a glance
+
+One deployment, one KV namespace, many independent orgs — every tournament/poll/roster key is scoped
+by `communityId`/`tournamentId`, so orgs never see each other's data even though they share storage:
+
+```
+Cloudflare KV (shared)
+ ├─ community:org-A ── tournament:t1 ── poll / teams / positions / auction / matches / bracket
+ │                  └─ tournament:t2 ── (a second, independent tournament for the same org)
+ ├─ community:org-B ── tournament:t3 ── poll / teams / positions / auction / matches / bracket
+ └─ community:org-C ── (no tournament yet — just created, no /app/* data until one exists)
+
+ user:u1 ── memberships: [ {org-A, org_admin, active}, {org-B, player, pending} ]
+ user:u2 ── memberships: [ {org-B, org_admin, active} ]
+                                (one account, many orgs, a different role in each)
+```
 
 ## Why no database
 
