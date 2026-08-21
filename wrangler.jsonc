@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "sport-craft",
+	"name": "estancia-volleyball",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2025-10-08",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -15,5 +15,22 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	// Single KV namespace holds EVERYTHING (no D1/database — see docs/DEVPLAN.md §3): communities,
+	// users, tournaments, poll state, teams, position categories, auction state, matches/sets, and the
+	// bracket. Each domain gets its own key prefix; enumeration uses small `idx:*` list keys, the same
+	// pattern as the reference app's user store.
+	"kv_namespaces": [
+		{
+			"binding": "KV",
+			"id": "REPLACE_WITH_REAL_KV_NAMESPACE_ID",
+			// Replace with a real preview namespace id for `wrangler dev`; local `next dev` uses an
+			// in-memory fallback store when no KV binding is present (see src/lib/kv.ts).
+			"preview_id": "REPLACE_WITH_REAL_KV_PREVIEW_NAMESPACE_ID"
+		}
+	],
+	// Session-cookie signing key. DO NOT ship a real secret here — set it per-env:
+	//   prod:  wrangler secret put SECRET
+	//   dev:   put SECRET=... in .dev.vars (gitignored)
+	"vars": {}
 }

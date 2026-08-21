@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local `next dev` / `wrangler dev` (gitignored).
+# Session-cookie signing key. Any long random string; rotating it invalidates all sessions.
+SECRET=dev-only-change-me-1234567890

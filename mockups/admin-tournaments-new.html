@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>New Tournament — Estancia Volleyball</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="assets/app.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div class="container py-4">
+    <h4 class="mb-3">Create a new tournament</h4>
+    <p class="muted small">Super Admin only. Once created, assign an Organizer committee to run it day to day.</p>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-7">
+        <div class="card card-vb">
+          <div class="card-header">Core variables</div>
+          <div class="card-body">
+            <div class="mb-3"><label class="form-label small muted">Tournament name</label>
+              <input class="form-control" value="Estancia Fall Volleyball League 2026"></div>
+            <div class="row g-2 mb-3">
+              <div class="col-6"><label class="form-label small muted">Max teams</label><input type="number" class="form-control" value="6"></div>
+              <div class="col-6"><label class="form-label small muted">Team size</label><input type="number" class="form-control" value="6"></div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6"><label class="form-label small muted">Auction budget / captain</label><input type="number" class="form-control" value="100"></div>
+              <div class="col-6"><label class="form-label small muted">Poll capacity</label><input type="number" class="form-control" value="36" disabled></div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-4"><label class="form-label small muted">Sets to win</label><input type="number" class="form-control" value="2"></div>
+              <div class="col-4"><label class="form-label small muted">Points / set</label><input type="number" class="form-control" value="25"></div>
+              <div class="col-4"><label class="form-label small muted">Win by</label><input type="number" class="form-control" value="2"></div>
+            </div>
+            <div class="mb-3"><label class="form-label small muted">Playoff team count</label><input type="number" class="form-control" value="4" style="max-width:120px"></div>
+            <button class="btn btn-primary" onclick="alert('Tournament created (demo). Now assign organizers below.')">Create tournament</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-5">
+        <div class="card card-vb">
+          <div class="card-header">Assign organizers</div>
+          <div class="card-body" id="organizer-picker"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/sample-data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    VB.mountNav('admin-tournaments-new');
+    const S = VB.S;
+    const candidates = S.users.filter(u => u.role !== 'admin');
+    const assigned = ['u_org1', 'u_org2'];
+    document.getElementById('organizer-picker').innerHTML = `
+      <p class="muted small">Search community members and add them to this tournament's committee.</p>
+      <input class="form-control form-control-sm mb-2" placeholder="Search members…">
+      <div style="max-height:260px;overflow-y:auto" class="mb-2">
+        ${candidates.slice(0, 8).map(u => `
+        <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+          <span>${u.name}</span>
+          ${assigned.includes(u.id)
+            ? '<span class="badge-role role-organizer">Organizer</span>'
+            : '<button class="btn btn-sm btn-outline-primary" onclick="this.outerHTML=\'<span class=&quot;badge-role role-organizer&quot;>Organizer</span>\'">Add</button>'}
+        </div>`).join('')}
+      </div>
+      <p class="muted small mb-0">2 organizers currently assigned. Manage the full list from <a href="admin-organizers.html">Organizers</a>.</p>`;
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

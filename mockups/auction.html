@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Auction — Estancia Volleyball</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="assets/app.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Live auction</h4>
+      <span class="badge-status st-live" id="live-badge"><span class="live-dot"></span>LIVE</span>
+    </div>
+
+    <div class="card card-vb mb-3">
+      <div class="card-body py-2" id="round-tracker"></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-7">
+        <div class="card card-vb mb-3">
+          <div class="card-body nominee-card" id="nominee-card"></div>
+        </div>
+        <div class="card card-vb" id="bid-panel-wrap" style="display:none">
+          <div class="card-header">Your bid — <span id="bid-team-name"></span></div>
+          <div class="card-body" id="bid-panel"></div>
+        </div>
+        <div class="card card-vb" id="watch-note" style="display:none">
+          <div class="card-body muted small">Only the captain whose team still needs this position can bid. Everyone else watches live.</div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-5">
+        <div class="card card-vb mb-3">
+          <div class="card-header">Team budgets</div>
+          <div class="card-body budget-rail" id="budget-rail"></div>
+        </div>
+        <div class="card card-vb mb-3">
+          <div class="card-header">Up next this round</div>
+          <div class="card-body" id="queue"></div>
+        </div>
+        <div class="card card-vb">
+          <div class="card-header">Bid log</div>
+          <div class="card-body auction-log" id="log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/sample-data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    VB.mountNav('auction');
+    const S = VB.S, A = S.auctionLive, t = S.tournament;
+    let state = JSON.parse(JSON.stringify(A)); // local mutable copy for the bid demo
+
+    function render() {
+      // round tracker
+      document.getElementById('round-tracker').innerHTML = `<div class="stepper">` +
+        state.roundsCompleted.map(r => `<div class="step done"><span class="step-label">${r}</span><span class="step-sub">complete</span></div>`).join('') +
+        `<div class="step current"><span class="step-label">${state.currentRound}</span><span class="step-sub">live now</span></div>` +
+        state.roundsRemaining.map(r => `<div class="step"><span class="step-label">${r}</span><span class="step-sub">queued</span></div>`).join('') +
+        `</div>`;
+
+      // nominee card
+      const nominee = state.currentNominee;
+      const bidTeam = S.teams.find(x => x.id === state.currentBid.team_id);
+      document.getElementById('nominee-card').innerHTML = `
+        <div class="muted text-uppercase small mb-1">${nominee.position} · on the block</div>
+        <div class="nominee-name mb-2">${VB.userName(nominee.user_id)}</div>
+        <div class="bid-amount">${state.currentBid.amount} pts</div>
+        <div class="mb-2">${VB.teamChip(bidTeam.id, { link: false })} is high bidder</div>
+        <div class="muted small">Turn closes in ~${state.turn_deadline_in_s}s of no new bids</div>`;
+
+      // budget rail
+      document.getElementById('budget-rail').innerHTML = state.teamState.map(ts => {
+        const team = S.teams.find(x => x.id === ts.team_id);
+        return `<div class="team-row">
+          <span class="flex-grow-1">${VB.teamChip(team.id, { link: false })}</span>
+          <span class="muted small">${ts.filled}/5 slots</span>
+          <span class="mono fw-bold">${ts.budget_remaining} pts</span>
+        </div>`;
+      }).join('');
+
+      // nomination queue
+      document.getElementById('queue').innerHTML = state.nominationQueue.length
+        ? state.nominationQueue.map(q => `<div class="d-flex justify-content-between small mb-1">
+            <span>${VB.userName(q.user_id)}</span><span class="muted">${q.position}</span></div>`).join('')
+        : `<span class="muted small">Last player in this round's category.</span>`;
+
+      // log
+      document.getElementById('log').innerHTML = state.log.slice().reverse().map(l => `
+        <div class="d-flex justify-content-between border-bottom py-1">
+          <span>${VB.userName(l.user_id)} <span class="muted">(${l.position})</span></span>
+          <span>${VB.teamChip(l.team_id, { link: false })} <span class="mono">${l.amount}</span>
+          ${l.result === 'sold' ? '<span class="text-success small">sold</span>' : '<span class="text-warning small">bidding</span>'}</span>
+        </div>`).join('');
+
+      // bid panel visibility
+      const role = VB.role();
+      const myTeam = VB.myTeam();
+      const iCanBid = role === 'captain' && myTeam && !state.teamState.find(x => x.team_id === myTeam.id && x.filled > state.roundsCompleted.length);
+      document.getElementById('bid-panel-wrap').style.display = iCanBid ? '' : 'none';
+      document.getElementById('watch-note').style.display = iCanBid ? 'none' : '';
+      if (iCanBid) {
+        document.getElementById('bid-team-name').textContent = myTeam.name;
+        const myBudget = state.teamState.find(x => x.team_id === myTeam.id).budget_remaining;
+        const alreadyHigh = state.currentBid.team_id === myTeam.id;
+        document.getElementById('bid-panel').innerHTML = `
+          <div class="mb-2 muted small">Your remaining budget: <span class="mono fw-bold">${myBudget} pts</span></div>
+          ${alreadyHigh ? '<p class="text-success small">You\'re the current high bid.</p>' : `
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-primary quick-bid-btn" onclick="placeBid(${state.currentBid.amount + 1})">+1</button>
+            <button class="btn btn-outline-primary quick-bid-btn" onclick="placeBid(${state.currentBid.amount + 5})">+5</button>
+            <button class="btn btn-outline-primary quick-bid-btn" onclick="placeBid(${state.currentBid.amount + 10})">+10</button>
+            <input id="custom-bid" type="number" class="form-control" style="max-width:120px" placeholder="Custom" min="${state.currentBid.amount + 1}" max="${myBudget}">
+            <button class="btn btn-primary" onclick="placeBid(document.getElementById('custom-bid').value)">Bid</button>
+          </div>`}`;
+      }
+    }
+
+    function placeBid(amount) {
+      amount = parseInt(amount, 10);
+      const myTeam = VB.myTeam();
+      const myBudget = state.teamState.find(x => x.team_id === myTeam.id).budget_remaining;
+      if (!amount || amount <= state.currentBid.amount) { alert('Bid must be higher than the current bid.'); return; }
+      if (amount > myBudget) { alert('That exceeds your remaining budget.'); return; }
+      state.currentBid = { amount, team_id: myTeam.id };
+      state.log.push({ user_id: state.currentNominee.user_id, team_id: myTeam.id, position: state.currentNominee.position, amount, result: 'bidding' });
+      render();
+    }
+    render();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

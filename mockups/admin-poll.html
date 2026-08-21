@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin · Poll — Estancia Volleyball</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="assets/app.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+      <h4 class="mb-0">Manage poll</h4>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary" onclick="alert('Poll frozen (demo).')">Freeze poll</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="alert('Poll closed (demo).')">Close poll</button>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-md-4">
+        <div class="card card-vb p-3 text-center"><div class="stat" id="confirmed-n"></div><div class="muted small">Confirmed</div></div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card card-vb p-3 text-center"><div class="stat" id="waitlist-n"></div><div class="muted small">Waitlisted</div></div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card card-vb p-3 text-center"><div class="stat" id="capacity-n"></div><div class="muted small">Capacity</div></div>
+      </div>
+    </div>
+
+    <div class="card card-vb">
+      <div class="card-header">All entries</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead><tr><th>#</th><th>Player</th><th>Signed up</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/sample-data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    VB.mountNav('admin-poll');
+    const S = VB.S;
+    const entries = S.poll.entries.slice().sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+    document.getElementById('confirmed-n').textContent = entries.filter(e => e.status === 'confirmed').length;
+    document.getElementById('waitlist-n').textContent = entries.filter(e => e.status === 'waitlisted').length;
+    document.getElementById('capacity-n').textContent = S.poll.capacity;
+
+    document.getElementById('rows').innerHTML = entries.map((e, i) => `
+      <tr class="entry-row">
+        <td class="muted">${i + 1}</td>
+        <td>${VB.userName(e.user_id)}</td>
+        <td class="small muted">${VB.fmt.datetime(e.submitted_at)}</td>
+        <td>${VB.statusBadge(e.status)}</td>
+        <td class="text-end">
+          ${e.status === 'waitlisted' ? '<button class="btn btn-sm btn-outline-primary" onclick="alert(\'Promoted to confirmed (demo).\')">Promote</button>' : ''}
+          ${e.status === 'confirmed' ? '<button class="btn btn-sm btn-outline-secondary" onclick="alert(\'Removed; next waitlisted player promoted (demo).\')">Remove</button>' : ''}
+        </td>
+      </tr>`).join('');
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

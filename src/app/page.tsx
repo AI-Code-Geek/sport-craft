@@ -1,88 +1,117 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { login, register } from "@/lib/api-client";
+import { DEMO_ADMIN_EMAIL, DEMO_PASSWORD } from "@/lib/seed-client-hint";
+
+export default function LandingPage() {
+	const [tab, setTab] = useState<"login" | "join">("login");
+	const [email, setEmail] = useState(DEMO_ADMIN_EMAIL);
+	const [password, setPassword] = useState(DEMO_PASSWORD);
+	const [name, setName] = useState("");
+	const [joinEmail, setJoinEmail] = useState("");
+	const [joinPassword, setJoinPassword] = useState("");
+	const [inviteCode, setInviteCode] = useState("ESTANCIA");
+	const [error, setError] = useState("");
+	const [busy, setBusy] = useState(false);
+
+	async function doLogin() {
+		setBusy(true);
+		setError("");
+		const { ok, data } = await login(email, password);
+		setBusy(false);
+		if (!ok) return setError(data.error === "invalid_credentials" ? "Invalid email or password." : "Sign-in failed.");
+		window.location.href = "/app";
+	}
+
+	async function doRegister() {
+		setBusy(true);
+		setError("");
+		const { ok, data } = await register(name, joinEmail, joinPassword, inviteCode);
+		setBusy(false);
+		if (!ok) {
+			const messages: Record<string, string> = {
+				invalid_invite_code: "That invite code doesn't match any community.",
+				email_taken: "That email is already registered.",
+				password_too_short: "Password must be at least 8 characters.",
+				missing_fields: "Please fill in every field.",
+			};
+			return setError(messages[data.error ?? ""] ?? "Registration failed.");
+		}
+		window.location.href = "/app";
+	}
+
 	return (
-		<div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-			<main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-				<Image
-					className="dark:invert"
-					src="/next.svg"
-					alt="Next.js logo"
-					width={180}
-					height={38}
-					priority
-				/>
-				<ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-					<li className="mb-2 tracking-[-.01em]">
-						Get started by editing{" "}
-						<code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-							src/app/page.tsx
-						</code>
-						.
-					</li>
-					<li className="tracking-[-.01em]">
-						Save and see your changes instantly.
-					</li>
-				</ol>
+		<div className="mx-auto max-w-md px-4 py-16">
+			<div className="mb-4 text-center text-3xl">🏐</div>
+			<div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+				<h1 className="mb-1 text-2xl font-extrabold">
+					Estancia<span className="text-brand">VB</span>
+				</h1>
+				<p className="mb-5 text-sm text-muted">Community volleyball league — poll, teams, auction, schedule & live scores.</p>
 
-				<div className="flex gap-4 items-center flex-col sm:flex-row">
-					<a
-						className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-						href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-						target="_blank"
-						rel="noopener noreferrer"
+				<div className="mb-4 flex gap-1 rounded-lg bg-surface-2 p-1 text-sm">
+					<button
+						onClick={() => setTab("login")}
+						className={`flex-1 rounded-md py-1.5 font-medium ${tab === "login" ? "bg-surface shadow-sm" : "text-muted"}`}
 					>
-						Read our docs
-					</a>
+						Log in
+					</button>
+					<button
+						onClick={() => setTab("join")}
+						className={`flex-1 rounded-md py-1.5 font-medium ${tab === "join" ? "bg-surface shadow-sm" : "text-muted"}`}
+					>
+						Join a community
+					</button>
 				</div>
-			</main>
-			<footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-				<a
-					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Image
-						aria-hidden
-						src="/file.svg"
-						alt="File icon"
-						width={16}
-						height={16}
-					/>
-					Learn
-				</a>
-				<a
-					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Image
-						aria-hidden
-						src="/window.svg"
-						alt="Window icon"
-						width={16}
-						height={16}
-					/>
-					Examples
-				</a>
-				<a
-					className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-					href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Image
-						aria-hidden
-						src="/globe.svg"
-						alt="Globe icon"
-						width={16}
-						height={16}
-					/>
-					Go to nextjs.org →
-				</a>
-			</footer>
+
+				{error ? <p className="mb-3 rounded-md bg-bad/10 px-3 py-2 text-sm text-bad">{error}</p> : null}
+
+				{tab === "login" ? (
+					<div className="flex flex-col gap-3">
+						<Field label="Email">
+							<input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+						</Field>
+						<Field label="Password">
+							<input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+						</Field>
+						<button disabled={busy} onClick={doLogin} className="btn-primary">
+							Sign in →
+						</button>
+						<p className="text-xs text-muted">
+							Demo super admin: <span className="mono">{DEMO_ADMIN_EMAIL}</span> / <span className="mono">{DEMO_PASSWORD}</span>
+						</p>
+					</div>
+				) : (
+					<div className="flex flex-col gap-3">
+						<Field label="Your name">
+							<input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
+						</Field>
+						<Field label="Email">
+							<input className="input" value={joinEmail} onChange={(e) => setJoinEmail(e.target.value)} placeholder="you@example.com" />
+						</Field>
+						<Field label="Password">
+							<input className="input" type="password" value={joinPassword} onChange={(e) => setJoinPassword(e.target.value)} placeholder="8+ characters" />
+						</Field>
+						<Field label="Community invite code">
+							<input className="input mono" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
+						</Field>
+						<button disabled={busy} onClick={doRegister} className="btn-secondary">
+							Create account & join →
+						</button>
+					</div>
+				)}
+			</div>
+			<p className="mt-4 text-center text-xs text-muted">Estancia Recreation Club · Summer Volleyball League 2026</p>
 		</div>
+	);
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+	return (
+		<label className="flex flex-col gap-1 text-sm">
+			<span className="text-xs text-muted">{label}</span>
+			{children}
+		</label>
 	);
 }
