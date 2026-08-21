@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listOrgRequests, decideOrgRequest, listOrganizations } from "@/lib/api-client";
+import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect } from "@/lib/api-client";
 import type { OrgRequestView, OrganizationSummary } from "@/lib/api-client";
 import { Card } from "@/components/ui";
-import { FEATURE_LABELS } from "@/lib/types";
-import type { FeatureKey } from "@/lib/types";
+import { FEATURE_LABELS, ALL_FEATURES_ENABLED } from "@/lib/types";
+import type { FeatureKey, SportType } from "@/lib/types";
 
 const FEATURE_KEYS = Object.keys(FEATURE_LABELS) as FeatureKey[];
 
@@ -13,6 +13,12 @@ export default function OrganizationsConsolePage() {
 	const [requests, setRequests] = useState<OrgRequestView[]>([]);
 	const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
 	const [busyId, setBusyId] = useState<string | null>(null);
+
+	const [newOrgName, setNewOrgName] = useState("");
+	const [newOrgSport, setNewOrgSport] = useState<SportType>("volleyball");
+	const [newOrgFeatures, setNewOrgFeatures] = useState<Record<FeatureKey, boolean>>(ALL_FEATURES_ENABLED);
+	const [creating, setCreating] = useState(false);
+	const [createError, setCreateError] = useState("");
 
 	async function load() {
 		const [{ data: r }, { data: o }] = await Promise.all([listOrgRequests(), listOrganizations()]);
@@ -31,6 +37,25 @@ export default function OrganizationsConsolePage() {
 			await load();
 		} finally {
 			setBusyId(null);
+		}
+	}
+
+	async function createDirect() {
+		const name = newOrgName.trim();
+		if (!name) return;
+		setCreating(true);
+		setCreateError("");
+		try {
+			const { ok, data } = await createOrganizationDirect(name, newOrgSport, newOrgFeatures);
+			if (!ok) {
+				setCreateError(data.error === "org_name_taken" ? "An organization with that name already exists." : "Couldn't create the organization.");
+				return;
+			}
+			setNewOrgName("");
+			setNewOrgFeatures(ALL_FEATURES_ENABLED);
+			await load();
+		} finally {
+			setCreating(false);
 		}
 	}
 
@@ -68,6 +93,45 @@ export default function OrganizationsConsolePage() {
 						))}
 					</div>
 				)}
+			</Card>
+
+			<Card title="Create an organization directly">
+				<p className="mb-3 text-xs text-muted">
+					Skips the request queue — you become this org&apos;s founding Org Admin immediately.
+				</p>
+				{createError ? <p className="mb-3 rounded-md bg-bad/10 px-3 py-2 text-sm text-bad">{createError}</p> : null}
+				<div className="grid gap-3 md:grid-cols-2">
+					<label className="flex flex-col gap-1 text-sm">
+						<span className="text-xs text-muted">Organization name</span>
+						<input className="input" value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} placeholder="Riverside Rec League" />
+					</label>
+					<label className="flex flex-col gap-1 text-sm">
+						<span className="text-xs text-muted">Sport</span>
+						<select className="input" value={newOrgSport} onChange={(e) => setNewOrgSport(e.target.value as SportType)}>
+							<option value="volleyball">Volleyball</option>
+							<option value="basketball">Basketball</option>
+							<option value="soccer">Soccer</option>
+							<option value="softball">Softball</option>
+							<option value="pickleball">Pickleball</option>
+							<option value="other">Other</option>
+						</select>
+					</label>
+				</div>
+				<div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg border border-border bg-surface-2 p-3 md:grid-cols-4">
+					{FEATURE_KEYS.map((k) => (
+						<label key={k} className="flex items-center gap-2 text-sm">
+							<input
+								type="checkbox"
+								checked={newOrgFeatures[k]}
+								onChange={(e) => setNewOrgFeatures((prev) => ({ ...prev, [k]: e.target.checked }))}
+							/>
+							{FEATURE_LABELS[k]}
+						</label>
+					))}
+				</div>
+				<button className="btn-primary mt-3" disabled={creating || !newOrgName.trim()} onClick={createDirect}>
+					{creating ? "Creating…" : "Create organization"}
+				</button>
 			</Card>
 
 			<Card title="All organizations">

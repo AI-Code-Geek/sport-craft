@@ -170,8 +170,8 @@ export interface OrganizationSummary {
 	orgAdmins: PublicUser[];
 }
 export const listOrganizations = () => get<{ organizations: OrganizationSummary[] }>("/api/organizations");
-export const createOrganizationDirect = (orgName: string, sport: SportType) =>
-	post<{ community: Community }>("/api/organizations", { orgName, sport });
+export const createOrganizationDirect = (orgName: string, sport: SportType, features?: Record<FeatureKey, boolean>) =>
+	post<{ community: Community }>("/api/organizations", { orgName, sport, features });
 
 // ── Community / organization settings (Org Admin / Super Admin, own active org) ─
 export const getCommunitySettings = () => get<{ community: Community }>("/api/community");
