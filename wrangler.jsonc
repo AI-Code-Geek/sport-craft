@@ -23,7 +23,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "KV",
-			"id": "REPLACE_WITH_REAL_KV_NAMESPACE_ID",
+			"id": "def4dd944bc44d32aecc920b9a262e3b",
 			// Replace with a real preview namespace id for `wrangler dev`; local `next dev` uses an
 			// in-memory fallback store when no KV binding is present (see src/lib/kv.ts).
 			"preview_id": "REPLACE_WITH_REAL_KV_PREVIEW_NAMESPACE_ID"
