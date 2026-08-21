@@ -1,6 +1,13 @@
-# Estancia Volleyball League — End-to-End Dev Plan
+> **Historical document.** This was the pre-build plan and no longer matches the shipped app in
+> several places — most notably, it specs a D1 (SQLite) database that was never built; the actual
+> implementation is KV-only, and the role model has since grown into multi-org/multi-sport with
+> Super Admin / Org Admin / Player roles and request-approval flows. Kept for context on the original
+> design intent. **For accurate, current documentation, see [`docs/developer/`](developer/) and
+> [`docs/user/`](user/).**
 
-**Status:** PLAN
+# Estancia Volleyball League — End-to-End Dev Plan (historical)
+
+**Status:** PLAN (superseded — see banner above)
 **App:** `volleyball-tournament-next-js` (Next.js on Cloudflare Workers via OpenNext — same stack as
 `aiqtrader-next-js`)
 **Role in the system:** Full-stack community tournament manager. A **Super Admin** stands up each
