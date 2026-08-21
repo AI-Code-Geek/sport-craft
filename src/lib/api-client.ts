@@ -15,6 +15,7 @@ async function call<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; 
 const post = <T>(url: string, body?: unknown) => call<T>(url, { method: "POST", body: body ? JSON.stringify(body) : undefined });
 const patch = <T>(url: string, body?: unknown) => call<T>(url, { method: "PATCH", body: body ? JSON.stringify(body) : undefined });
 const get = <T>(url: string) => call<T>(url);
+const del = <T>(url: string) => call<T>(url, { method: "DELETE" });
 
 export interface RoleContext {
 	isSuperAdmin: boolean;
@@ -56,6 +57,8 @@ export const createTournament = (input: Record<string, unknown>) => post<{ tourn
 export const listTournaments = () => get<{ tournaments: Tournament[] }>("/api/tournaments");
 export const getTournament = (id: string) => get<{ tournament: Tournament }>(`/api/tournaments/${id}`);
 export const updateTournament = (id: string, patchBody: Record<string, unknown>) => patch<{ tournament: Tournament }>(`/api/tournaments/${id}`, patchBody);
+export const deleteTournament = (id: string) => del<{ ok: boolean }>(`/api/tournaments/${id}`);
+export const exportTournamentUrl = (id: string) => `/api/tournaments/${id}/export`;
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
 export interface PollEntryView extends PollEntry {

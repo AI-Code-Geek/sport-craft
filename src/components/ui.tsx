@@ -17,9 +17,10 @@ export function Card({ title, children, className = "" }: { title?: string; chil
 }
 
 const STATUS_CLASSES: Record<string, string> = {
-	confirmed: "bg-ok/15 text-ok", completed: "bg-ok/15 text-ok", active: "bg-ok/15 text-ok", won: "bg-ok/15 text-ok",
-	waitlisted: "bg-warn/15 text-warn", scheduled: "bg-warn/15 text-warn", pending: "bg-warn/15 text-warn",
-	live: "bg-bad/15 text-bad", cancelled: "bg-neutral/20 text-neutral", lost: "bg-neutral/20 text-neutral", withdrawn: "bg-neutral/20 text-neutral",
+	confirmed: "bg-ok/15 text-ok", completed: "bg-ok/15 text-ok", active: "bg-ok/15 text-ok", won: "bg-ok/15 text-ok", open: "bg-ok/15 text-ok",
+	waitlisted: "bg-warn/15 text-warn", scheduled: "bg-warn/15 text-warn", pending: "bg-warn/15 text-warn", frozen: "bg-warn/15 text-warn",
+	live: "bg-bad/15 text-bad",
+	cancelled: "bg-neutral/20 text-neutral", lost: "bg-neutral/20 text-neutral", withdrawn: "bg-neutral/20 text-neutral", closed: "bg-neutral/20 text-neutral", not_started: "bg-neutral/20 text-neutral",
 };
 export function StatusBadge({ status }: { status: string }) {
 	const cls = STATUS_CLASSES[status] ?? "bg-neutral/20 text-neutral";

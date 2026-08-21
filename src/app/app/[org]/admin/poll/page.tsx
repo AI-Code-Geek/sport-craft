@@ -2,18 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { fetchMe, getPoll, pollAction, pollPromote, pollVote } from "@/lib/api-client";
-import type { PollEntryView } from "@/lib/api-client";
+import type { PollEntryView, PollView } from "@/lib/api-client";
 import { Card, StatusBadge, Stat } from "@/components/ui";
 import { fmtDateTime } from "@/lib/format";
 
+/** Derived purely from the poll record — there's no separate "status" field, just openedAt/closedAt/frozen. */
+function pollStatus(poll: PollView | null): "not_started" | "open" | "frozen" | "closed" {
+	if (!poll || !poll.openedAt) return "not_started";
+	if (poll.closedAt) return "closed";
+	if (poll.frozen) return "frozen";
+	return "open";
+}
+
 export default function AdminPollPage() {
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
+	const [poll, setPoll] = useState<PollView | null>(null);
 	const [entries, setEntries] = useState<PollEntryView[]>([]);
 	const [capacity, setCapacity] = useState(0);
 	const [busy, setBusy] = useState(false);
 
 	async function load(tid: string) {
 		const { data } = await getPoll(tid);
+		setPoll(data.poll ?? null);
 		setEntries(data.poll?.entries ?? []);
 		setCapacity(data.capacity ?? 0);
 	}
@@ -48,16 +58,29 @@ export default function AdminPollPage() {
 	const waitlisted = entries.filter((e) => e.status === "waitlisted");
 	const sorted = entries.filter((e) => e.status !== "withdrawn").slice().sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
 
+	const status = pollStatus(poll);
+
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-wrap items-center justify-between gap-2">
-				<h1 className="text-xl font-bold">Manage poll</h1>
+				<div className="flex items-center gap-2">
+					<h1 className="text-xl font-bold">Manage poll</h1>
+					<StatusBadge status={status} />
+				</div>
 				<div className="flex gap-2">
-					<button disabled={busy} className="btn-secondary" onClick={() => doAction("open")}>Open poll</button>
-					<button disabled={busy} className="btn-outline" onClick={() => doAction("freeze")}>Freeze poll</button>
-					<button disabled={busy} className="btn-danger" onClick={() => doAction("close")}>Close poll</button>
+					<button disabled={busy || status === "open"} className="btn-secondary" onClick={() => doAction("open")}>
+						{status === "frozen" ? "Re-open poll" : "Open poll"}
+					</button>
+					<button disabled={busy || status === "not_started" || status === "closed"} className="btn-outline" onClick={() => doAction("freeze")}>Freeze poll</button>
+					<button disabled={busy || status === "not_started" || status === "closed"} className="btn-danger" onClick={() => doAction("close")}>Close poll</button>
 				</div>
 			</div>
+			<p className="text-xs text-muted">
+				{status === "not_started" ? "The poll hasn't opened yet — players can't sign up until you open it."
+					: status === "open" ? "Open — players can sign up now. Confirmed once capacity fills; the rest waitlist."
+					: status === "frozen" ? "Frozen — no new signups, but nothing's final. Re-open to keep taking signups, or close to lock it in."
+					: "Closed — signup is locked in. Move on to picking captains."}
+			</p>
 
 			<div className="grid gap-3 md:grid-cols-3">
 				<Stat value={confirmed.length} label="Confirmed" />

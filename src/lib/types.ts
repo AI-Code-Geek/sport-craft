@@ -178,6 +178,8 @@ export interface Tournament {
 	pollClosedAt: string | null;
 	createdBy: string;
 	createdAt: string;
+	/** Org Admin-authored rules/guidelines, shown to every player once the tournament is open (not draft). */
+	guidelines: string | null;
 }
 
 /** Position categories, one per remaining roster slot (teamSize - 1). Default volleyball set. */
