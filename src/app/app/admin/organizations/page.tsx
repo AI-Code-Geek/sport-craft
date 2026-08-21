@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect } from "@/lib/api-client";
+import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect, assignOrgAdmin, switchOrg, fetchMe } from "@/lib/api-client";
 import type { OrgRequestView, OrganizationSummary } from "@/lib/api-client";
 import { Card } from "@/components/ui";
 import { FEATURE_LABELS, ALL_FEATURES_ENABLED } from "@/lib/types";
@@ -20,6 +20,13 @@ export default function OrganizationsConsolePage() {
 	const [creating, setCreating] = useState(false);
 	const [createError, setCreateError] = useState("");
 
+	const [assignEmail, setAssignEmail] = useState<Record<string, string>>({});
+	const [assignBusy, setAssignBusy] = useState<string | null>(null);
+	const [assignError, setAssignError] = useState<Record<string, string>>({});
+
+	const [myUserId, setMyUserId] = useState<string | null>(null);
+	const [switching, setSwitching] = useState<string | null>(null);
+
 	async function load() {
 		const [{ data: r }, { data: o }] = await Promise.all([listOrgRequests(), listOrganizations()]);
 		setRequests(r.requests ?? []);
@@ -28,7 +35,18 @@ export default function OrganizationsConsolePage() {
 
 	useEffect(() => {
 		load();
+		fetchMe().then(({ data }) => setMyUserId(data.user?.userid ?? null));
 	}, []);
+
+	async function goToDashboard(communityId: string) {
+		setSwitching(communityId);
+		try {
+			await switchOrg(communityId);
+			window.location.href = "/app/admin";
+		} finally {
+			setSwitching(null);
+		}
+	}
 
 	async function decide(id: string, action: "approve" | "reject") {
 		setBusyId(id);
@@ -51,11 +69,33 @@ export default function OrganizationsConsolePage() {
 				setCreateError(data.error === "org_name_taken" ? "An organization with that name already exists." : "Couldn't create the organization.");
 				return;
 			}
-			setNewOrgName("");
-			setNewOrgFeatures(ALL_FEATURES_ENABLED);
-			await load();
+			// You're added as this org's Org Admin, but your session cookie still points at whatever was
+			// active before — switch into it now so /app/admin actually shows the new org immediately.
+			await switchOrg(data.community.id);
+			window.location.href = "/app/admin";
 		} finally {
 			setCreating(false);
+		}
+	}
+
+	async function doAssign(communityId: string) {
+		const email = (assignEmail[communityId] ?? "").trim();
+		if (!email) return;
+		setAssignBusy(communityId);
+		setAssignError((prev) => ({ ...prev, [communityId]: "" }));
+		try {
+			const { ok, data } = await assignOrgAdmin(communityId, email);
+			if (!ok) {
+				setAssignError((prev) => ({
+					...prev,
+					[communityId]: data.error === "user_not_found" ? "No account with that email yet — they need to register first." : "Couldn't assign Org Admin.",
+				}));
+				return;
+			}
+			setAssignEmail((prev) => ({ ...prev, [communityId]: "" }));
+			await load();
+		} finally {
+			setAssignBusy(null);
 		}
 	}
 
@@ -136,17 +176,45 @@ export default function OrganizationsConsolePage() {
 
 			<Card title="All organizations">
 				<div className="flex flex-col divide-y divide-border">
-					{organizations.map(({ community, memberCount, orgAdmins }) => (
-						<div key={community.id} className="flex items-center justify-between py-2">
-							<div>
-								<div className="font-semibold">{community.name} <span className="text-xs font-normal text-muted">({community.sport})</span></div>
-								<div className="text-xs text-muted">
-									{memberCount} active member{memberCount === 1 ? "" : "s"} · Org Admins: {orgAdmins.length > 0 ? orgAdmins.map((a) => a.name).join(", ") : "none yet"}
+					{organizations.map(({ community, memberCount, orgAdmins }) => {
+						const iAmAdmin = myUserId != null && orgAdmins.some((a) => a.userid === myUserId);
+						return (
+						<div key={community.id} className="flex flex-col gap-2 py-3">
+							<div className="flex items-center justify-between">
+								<div>
+									<div className="font-semibold">{community.name} <span className="text-xs font-normal text-muted">({community.sport})</span></div>
+									<div className="text-xs text-muted">
+										{memberCount} active member{memberCount === 1 ? "" : "s"} · Org Admins: {orgAdmins.length > 0 ? orgAdmins.map((a) => a.name).join(", ") : "none yet"}
+									</div>
+								</div>
+								<div className="flex items-center gap-2">
+									{iAmAdmin ? (
+										<button className="btn-secondary" disabled={switching === community.id} onClick={() => goToDashboard(community.id)}>
+											{switching === community.id ? "Opening…" : "Go to dashboard →"}
+										</button>
+									) : null}
+									<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
 								</div>
 							</div>
-							<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
+							<div className="flex items-center gap-2">
+								<input
+									className="input w-auto flex-1"
+									placeholder="Assign Org Admin by email…"
+									value={assignEmail[community.id] ?? ""}
+									onChange={(e) => setAssignEmail((prev) => ({ ...prev, [community.id]: e.target.value }))}
+								/>
+								<button
+									className="btn-outline"
+									disabled={assignBusy === community.id || !(assignEmail[community.id] ?? "").trim()}
+									onClick={() => doAssign(community.id)}
+								>
+									{assignBusy === community.id ? "Assigning…" : "Assign"}
+								</button>
+							</div>
+							{assignError[community.id] ? <p className="text-xs text-bad">{assignError[community.id]}</p> : null}
 						</div>
-					))}
+						);
+					})}
 					{organizations.length === 0 ? <p className="py-2 text-sm text-muted">No organizations yet.</p> : null}
 				</div>
 			</Card>
