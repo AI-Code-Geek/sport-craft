@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { fetchMe, getTeams, getSchedule } from "@/lib/api-client";
 import type { TeamView } from "@/lib/api-client";
 import { Card, TeamChip, Meter, StatusBadge, EmptyState } from "@/components/ui";
@@ -9,6 +10,7 @@ import { fmtDateTime } from "@/lib/format";
 import type { Match } from "@/lib/types";
 
 export default function MyTeamPage() {
+	const { org } = useParams<{ org: string }>();
 	const [team, setTeam] = useState<TeamView | null | undefined>(undefined);
 	const [allTeams, setAllTeams] = useState<TeamView[]>([]);
 	const [matches, setMatches] = useState<Match[]>([]);
@@ -31,7 +33,7 @@ export default function MyTeamPage() {
 				icon="🏐"
 				title="You're not on a team yet"
 				sub="Teams are formed after the poll closes — captains are picked, then the position-based auction fills every roster."
-				action={<Link href="/app/poll" className="btn-primary mt-2">Check your poll status</Link>}
+				action={<Link href={`/app/${org}/poll`} className="btn-primary mt-2">Check your poll status</Link>}
 			/>
 		);
 	}
@@ -72,7 +74,7 @@ export default function MyTeamPage() {
 								const oppId = m.teamAId === team.id ? m.teamBId : m.teamAId;
 								const opp = allTeams.find((tm) => tm.id === oppId);
 								return (
-									<tr key={m.id} className="cursor-pointer border-t border-border hover:bg-surface-2" onClick={() => (window.location.href = `/app/matches/${m.id}`)}>
+									<tr key={m.id} className="cursor-pointer border-t border-border hover:bg-surface-2" onClick={() => (window.location.href = `/app/${org}/matches/${m.id}`)}>
 										<td className="py-2 pr-2">{opp ? <TeamChip id={opp.id} name={opp.name} color={opp.color} link={false} /> : oppId}</td>
 										<td className="py-2 pr-2 text-xs text-muted">{fmtDateTime(m.scheduledAt)} · {m.court}</td>
 										<td className="py-2 text-right"><StatusBadge status={m.status} /></td>

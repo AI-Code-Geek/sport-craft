@@ -1,5 +1,8 @@
+"use client";
+
 /** Small shared presentational pieces used across every page. */
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import type { TournamentStatus } from "@/lib/types";
 
 export function Card({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
@@ -30,13 +33,14 @@ export function StatusBadge({ status }: { status: string }) {
 
 const TEAM_DOT: Record<number, string> = { 1: "bg-t1", 2: "bg-t2", 3: "bg-t3", 4: "bg-t4", 5: "bg-t5", 6: "bg-t6", 7: "bg-t7", 8: "bg-t8" };
 export function TeamChip({ id, name, color, link = true }: { id: string; name: string; color: number; link?: boolean }) {
+	const params = useParams<{ org?: string }>();
 	const inner = (
 		<span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-sm font-medium">
 			<span className={`h-2.5 w-2.5 rounded-full ${TEAM_DOT[color] ?? "bg-neutral"}`} />
 			{name}
 		</span>
 	);
-	return link ? <Link href={`/app/teams#${id}`}>{inner}</Link> : inner;
+	return link && params.org ? <Link href={`/app/${params.org}/teams#${id}`}>{inner}</Link> : inner;
 }
 
 export function Meter({ pct, thin = false }: { pct: number; thin?: boolean }) {

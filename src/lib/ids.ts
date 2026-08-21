@@ -17,6 +17,12 @@ export function slugify(s: string): string {
 	return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+/** Slugs that can't be used for an org — they'd collide with a static route under /app/<slug>/. */
+const RESERVED_ORG_SLUGS = new Set(["admin"]);
+export function isReservedOrgSlug(slug: string): boolean {
+	return RESERVED_ORG_SLUGS.has(slug);
+}
+
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no I/L/O/0/1
 export function genInviteCode(name: string): string {
 	const prefix = slugify(name).slice(0, 8).toUpperCase() || "COMM";

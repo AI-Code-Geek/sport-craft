@@ -26,6 +26,8 @@ export interface RoleContext {
 export interface MembershipView {
 	communityId: string;
 	communityName: string;
+	/** The org's URL slug — e.g. /app/<slug>/... */
+	communitySlug: string;
 	role: "org_admin" | "player";
 	status: "pending" | "active";
 }
@@ -40,12 +42,14 @@ export const fetchMe = () =>
 		user: PublicUser | null;
 		isSuperAdmin: boolean;
 		communityId: string | null;
+		communitySlug: string | null;
 		features: Record<FeatureKey, boolean> | null;
 		memberships: MembershipView[];
 		tournamentId: string | null;
 		roleContext: RoleContext | null;
 	}>("/api/me");
 export const switchOrg = (communityId: string) => post<{ ok: boolean }>("/api/me/switch-org", { communityId });
+export const switchOrgBySlug = (orgSlug: string) => post<{ ok: boolean }>("/api/me/switch-org", { orgSlug });
 
 // ── Tournaments ───────────────────────────────────────────────────────────────
 export const createTournament = (input: Record<string, unknown>) => post<{ tournament: Tournament }>("/api/tournaments", input);

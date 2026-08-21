@@ -10,7 +10,7 @@ import type { Match } from "@/lib/types";
 type TeamView = Awaited<ReturnType<typeof getTeams>>["data"]["teams"][number];
 
 export default function ScoreboardPage() {
-	const { matchId } = useParams<{ matchId: string }>();
+	const { org, matchId } = useParams<{ org: string; matchId: string }>();
 	const router = useRouter();
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [match, setMatch] = useState<Match | null>(null);
@@ -60,7 +60,7 @@ export default function ScoreboardPage() {
 				<select
 					className="input w-auto"
 					value={matchId}
-					onChange={(e) => router.push(`/app/matches/${e.target.value}`)}
+					onChange={(e) => router.push(`/app/${org}/matches/${e.target.value}`)}
 				>
 					{allMatches
 						.slice()

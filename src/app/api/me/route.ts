@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic";
 export interface MembershipView {
 	communityId: string;
 	communityName: string;
+	/** The org's URL slug — e.g. /app/<slug>/... — see docs/developer/01-architecture.md. */
+	communitySlug: string;
 	role: "org_admin" | "player";
 	status: "pending" | "active";
 }
@@ -24,7 +26,13 @@ export async function GET(): Promise<Response> {
 	const memberships: MembershipView[] = await Promise.all(
 		user.memberships.map(async (m) => {
 			const community = await getCommunity(m.communityId);
-			return { communityId: m.communityId, communityName: community?.name ?? "(deleted org)", role: m.role, status: m.status };
+			return {
+				communityId: m.communityId,
+				communityName: community?.name ?? "(deleted org)",
+				communitySlug: community?.slug ?? "",
+				role: m.role,
+				status: m.status,
+			};
 		}),
 	);
 
@@ -38,6 +46,7 @@ export async function GET(): Promise<Response> {
 		user: publicUser(user, session.communityId ?? undefined),
 		isSuperAdmin: session.isSuperAdmin,
 		communityId: session.communityId,
+		communitySlug: activeCommunity?.slug ?? null,
 		features: activeCommunity?.features ?? null,
 		memberships,
 		tournamentId: tournament?.id ?? null,

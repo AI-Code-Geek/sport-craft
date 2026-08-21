@@ -5,7 +5,7 @@
  * here, not this one person's membership in it). KV keys: `org-request:<id>`, `idx:org-requests` -> id[].
  */
 import { kvGetJSON, kvPutJSON, idxAppend, idxList } from "./kv";
-import { genOrgRequestId, slugify } from "./ids";
+import { genOrgRequestId, slugify, isReservedOrgSlug } from "./ids";
 import { hashPassword } from "./password";
 import { createCommunity, getCommunityBySlug } from "./community-store";
 import { getUserByEmail, createAccountFromHash, addMembership } from "./user-store";
@@ -25,6 +25,7 @@ export interface SubmitOrgRequestInput {
 }
 
 export async function submitOrgRequest(input: SubmitOrgRequestInput): Promise<OrganizationRequest> {
+	if (isReservedOrgSlug(slugify(input.orgName))) throw new Error("org_name_taken");
 	const existingOrg = await getCommunityBySlug(slugify(input.orgName));
 	if (existingOrg) throw new Error("org_name_taken");
 

@@ -5,7 +5,7 @@ import { listUsersByCommunity, getUserById, addMembership, membershipFor } from 
 import { publicUser } from "@/lib/types";
 import type { SportType, FeatureKey } from "@/lib/types";
 import { FEATURE_LABELS } from "@/lib/types";
-import { slugify } from "@/lib/ids";
+import { slugify, isReservedOrgSlug } from "@/lib/ids";
 import { json } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +64,7 @@ export async function POST(req: Request): Promise<Response> {
 	const sport: SportType = VALID_SPORTS.includes(body.sport as SportType) ? (body.sport as SportType) : "volleyball";
 	const features = normalizeFeatures(body.features);
 
+	if (isReservedOrgSlug(slugify(orgName))) return json({ error: "org_name_taken" }, 409);
 	const existingOrg = await getCommunityBySlug(slugify(orgName));
 	if (existingOrg) return json({ error: "org_name_taken" }, 409);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchMe, logout, getNotifications, markNotificationsSeen, switchOrg } from "@/lib/api-client";
 import type { NotificationView, MembershipView } from "@/lib/api-client";
@@ -10,26 +10,28 @@ import { fmtDateTime } from "@/lib/format";
 
 type RoleCtx = { isSuperAdmin: boolean; isOrgAdmin: boolean; canManage: boolean; captainTeamId: string | null };
 
-/** `null` = always shown, no feature gate (e.g. Home). */
+/** `null` = always shown, no feature gate (e.g. Home). Paths are relative to `/app/<org slug>`. */
 const PARTICIPANT_LINKS: [string, string, FeatureKey | null][] = [
-	["/app", "Home", null],
-	["/app/poll", "Poll", "poll"],
-	["/app/teams", "Teams", "teams"],
-	["/app/teams/mine", "My Team", "teams"],
-	["/app/auction", "Auction", "auction"],
-	["/app/schedule", "Schedule", "scheduler"],
-	["/app/standings", "Standings", "scheduler"],
-	["/app/bracket", "Bracket", "brackets"],
+	["", "Home", null],
+	["poll", "Poll", "poll"],
+	["teams", "Teams", "teams"],
+	["teams/mine", "My Team", "teams"],
+	["auction", "Auction", "auction"],
+	["schedule", "Schedule", "scheduler"],
+	["standings", "Standings", "scheduler"],
+	["bracket", "Bracket", "brackets"],
 ];
 
 export function Nav() {
 	const pathname = usePathname();
+	const router = useRouter();
 	const [user, setUser] = useState<PublicUser | null>(null);
 	const [role, setRole] = useState<RoleCtx | null>(null);
 	const [isPlatformSuperAdmin, setIsPlatformSuperAdmin] = useState(false);
 	const [memberships, setMemberships] = useState<MembershipView[]>([]);
 	const [features, setFeatures] = useState<Record<FeatureKey, boolean> | null>(null);
 	const [communityId, setCommunityId] = useState<string | null>(null);
+	const [communitySlug, setCommunitySlug] = useState<string | null>(null);
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [notifications, setNotifications] = useState<NotificationView[]>([]);
@@ -44,6 +46,7 @@ export function Nav() {
 			setMemberships(data.memberships ?? []);
 			setFeatures(data.features ?? null);
 			setCommunityId(data.communityId ?? null);
+			setCommunitySlug(data.communitySlug ?? null);
 			setTournamentId(data.tournamentId ?? null);
 			if (data.tournamentId) {
 				const { data: n } = await getNotifications(data.tournamentId);
@@ -56,7 +59,8 @@ export function Nav() {
 	async function onSwitchOrg(id: string) {
 		if (id === communityId) return;
 		await switchOrg(id);
-		window.location.href = "/app";
+		const target = memberships.find((m) => m.communityId === id);
+		router.push(target ? `/app/${target.communitySlug}` : "/app");
 	}
 
 	async function toggleBell() {
@@ -81,26 +85,10 @@ export function Nav() {
 		window.location.href = "/";
 	}
 
+	const orgHref = (subPath: string) => (communitySlug ? `/app/${communitySlug}${subPath ? `/${subPath}` : ""}` : "/app");
 	const linkCls = (href: string) => `text-sm ${pathname === href ? "font-semibold text-foreground" : "text-muted"}`;
 	const canManage = role?.canManage ?? false;
 	const isOrgAdmin = role?.isOrgAdmin ?? false;
-
-	const adminLinks: [string, string][] = [];
-	if (canManage) adminLinks.push(["/app/admin/tournaments/new", "New tournament"]);
-	adminLinks.push(
-		["/app/admin/tournament", "Tournament settings"],
-		["/app/admin/poll", "Poll"],
-		["/app/admin/captains", "Captains"],
-		["/app/admin/positions", "Positions"],
-		["/app/admin/auction", "Auction control"],
-		["/app/admin/schedule", "Schedule"],
-		["/app/admin/scoring", "Scoring"],
-		["/app/admin/playoffs", "Playoffs"],
-	);
-	if (canManage) {
-		adminLinks.push(["/app/admin/users", "Users"]);
-		adminLinks.push(["/app/admin/settings", "Org settings"]);
-	}
 
 	const activeMemberships = memberships.filter((m) => m.status === "active");
 
@@ -108,10 +96,13 @@ export function Nav() {
 
 	const links = (
 		<>
-			{PARTICIPANT_LINKS.filter(([, , featureKey]) => featureKey === null || features?.[featureKey] !== false).map(([href, label]) => (
-				<Link key={href} href={href} className={linkCls(href)}>{label}</Link>
-			))}
-			{canManage ? <Link href="/app/admin" className={linkCls("/app/admin")}>Admin</Link> : null}
+			{PARTICIPANT_LINKS.filter(([, , featureKey]) => featureKey === null || features?.[featureKey] !== false).map(([subPath, label]) => {
+				const href = orgHref(subPath);
+				return (
+					<Link key={subPath} href={href} className={linkCls(href)}>{label}</Link>
+				);
+			})}
+			{canManage ? <Link href={orgHref("admin")} className={linkCls(orgHref("admin"))}>Admin</Link> : null}
 			{isPlatformSuperAdmin ? <Link href="/app/admin/organizations" className={linkCls("/app/admin/organizations")}>Organizations</Link> : null}
 		</>
 	);
