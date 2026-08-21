@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect, assignOrgAdmin } from "@/lib/api-client";
+import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect, assignOrgAdmin, switchOrg, fetchMe } from "@/lib/api-client";
 import type { OrgRequestView, OrganizationSummary } from "@/lib/api-client";
 import { Card } from "@/components/ui";
 import { FEATURE_LABELS, ALL_FEATURES_ENABLED } from "@/lib/types";
@@ -24,6 +24,9 @@ export default function OrganizationsConsolePage() {
 	const [assignBusy, setAssignBusy] = useState<string | null>(null);
 	const [assignError, setAssignError] = useState<Record<string, string>>({});
 
+	const [myUserId, setMyUserId] = useState<string | null>(null);
+	const [switching, setSwitching] = useState<string | null>(null);
+
 	async function load() {
 		const [{ data: r }, { data: o }] = await Promise.all([listOrgRequests(), listOrganizations()]);
 		setRequests(r.requests ?? []);
@@ -32,7 +35,18 @@ export default function OrganizationsConsolePage() {
 
 	useEffect(() => {
 		load();
+		fetchMe().then(({ data }) => setMyUserId(data.user?.userid ?? null));
 	}, []);
+
+	async function goToDashboard(communityId: string) {
+		setSwitching(communityId);
+		try {
+			await switchOrg(communityId);
+			window.location.href = "/app/admin";
+		} finally {
+			setSwitching(null);
+		}
+	}
 
 	async function decide(id: string, action: "approve" | "reject") {
 		setBusyId(id);
@@ -55,9 +69,10 @@ export default function OrganizationsConsolePage() {
 				setCreateError(data.error === "org_name_taken" ? "An organization with that name already exists." : "Couldn't create the organization.");
 				return;
 			}
-			setNewOrgName("");
-			setNewOrgFeatures(ALL_FEATURES_ENABLED);
-			await load();
+			// You're added as this org's Org Admin, but your session cookie still points at whatever was
+			// active before — switch into it now so /app/admin actually shows the new org immediately.
+			await switchOrg(data.community.id);
+			window.location.href = "/app/admin";
 		} finally {
 			setCreating(false);
 		}
@@ -161,7 +176,9 @@ export default function OrganizationsConsolePage() {
 
 			<Card title="All organizations">
 				<div className="flex flex-col divide-y divide-border">
-					{organizations.map(({ community, memberCount, orgAdmins }) => (
+					{organizations.map(({ community, memberCount, orgAdmins }) => {
+						const iAmAdmin = myUserId != null && orgAdmins.some((a) => a.userid === myUserId);
+						return (
 						<div key={community.id} className="flex flex-col gap-2 py-3">
 							<div className="flex items-center justify-between">
 								<div>
@@ -170,7 +187,14 @@ export default function OrganizationsConsolePage() {
 										{memberCount} active member{memberCount === 1 ? "" : "s"} · Org Admins: {orgAdmins.length > 0 ? orgAdmins.map((a) => a.name).join(", ") : "none yet"}
 									</div>
 								</div>
-								<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
+								<div className="flex items-center gap-2">
+									{iAmAdmin ? (
+										<button className="btn-secondary" disabled={switching === community.id} onClick={() => goToDashboard(community.id)}>
+											{switching === community.id ? "Opening…" : "Go to dashboard →"}
+										</button>
+									) : null}
+									<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
+								</div>
 							</div>
 							<div className="flex items-center gap-2">
 								<input
@@ -189,7 +213,8 @@ export default function OrganizationsConsolePage() {
 							</div>
 							{assignError[community.id] ? <p className="text-xs text-bad">{assignError[community.id]}</p> : null}
 						</div>
-					))}
+						);
+					})}
 					{organizations.length === 0 ? <p className="py-2 text-sm text-muted">No organizations yet.</p> : null}
 				</div>
 			</Card>
