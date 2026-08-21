@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Organizers — Estancia Volleyball</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="assets/app.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div class="container py-4">
+    <h4 class="mb-1">Organizer committee</h4>
+    <p class="muted small mb-3" id="tname"></p>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="card card-vb">
+          <div class="card-header">Currently assigned</div>
+          <div class="card-body" id="assigned-list"></div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card card-vb">
+          <div class="card-header">Add an organizer</div>
+          <div class="card-body">
+            <input class="form-control form-control-sm mb-2" placeholder="Search community members…">
+            <div style="max-height:280px;overflow-y:auto" id="candidate-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/sample-data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    VB.mountNav('admin-organizers');
+    const S = VB.S;
+    document.getElementById('tname').textContent = S.tournament.name;
+    const assigned = ['u_org1', 'u_org2'];
+
+    function renderAssigned() {
+      document.getElementById('assigned-list').innerHTML = assigned.length ? assigned.map(id => {
+        const u = S.users.find(x => x.id === id);
+        return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+          <div><div>${u.name}</div><div class="muted small">${u.email}</div></div>
+          <button class="btn btn-sm btn-outline-danger" onclick="removeOrg('${id}')">Remove</button>
+        </div>`;
+      }).join('') : '<p class="muted small mb-0">No organizers assigned yet — assign at least one before opening the poll.</p>';
+    }
+    function renderCandidates() {
+      const candidates = S.users.filter(u => u.role === 'player' && !assigned.includes(u.id)).slice(0, 10);
+      document.getElementById('candidate-list').innerHTML = candidates.map(u => `
+        <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+          <span>${u.name}</span>
+          <button class="btn btn-sm btn-outline-primary" onclick="addOrg('${u.id}')">Add</button>
+        </div>`).join('');
+    }
+    function addOrg(id) { assigned.push(id); renderAssigned(); renderCandidates(); }
+    function removeOrg(id) { assigned.splice(assigned.indexOf(id), 1); renderAssigned(); renderCandidates(); }
+    renderAssigned(); renderCandidates();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

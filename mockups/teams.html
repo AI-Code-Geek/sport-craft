@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Teams — Estancia Volleyball</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="assets/app.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div class="container py-4">
+    <h4 class="mb-3">All teams</h4>
+    <div class="row g-3" id="teams-grid"></div>
+  </div>
+
+  <script src="assets/sample-data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    VB.mountNav('teams');
+    const S = VB.S;
+    const standingsByTeam = Object.fromEntries(S.standings.map(s => [s.team_id, s]));
+
+    const cards = S.teams.map(team => {
+      const st = standingsByTeam[team.id];
+      const rosterRows = team.roster.map(r => `
+        <tr class="roster-row">
+          <td class="muted small">${r.position}</td>
+          <td>${VB.userName(r.user_id)}${r.role === 'captain' ? ' <span class="muted small">(C)</span>' : ''}</td>
+          <td class="text-end mono small">${r.sold_price != null ? VB.fmt.pts(r.sold_price) : '—'}</td>
+        </tr>`).join('');
+      return `
+      <div class="col-12 col-md-6 col-xl-4" id="${team.id}">
+        <div class="card card-vb h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>${VB.teamChip(team.id, { link: false })}</span>
+            <span class="muted small">Rank #${st ? st.rank : '—'}</span>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="muted small">Budget spent</span>
+              <span class="mono small">${team.budget_total - team.budget_remaining} / ${team.budget_total} pts</span>
+            </div>
+            <table class="table table-sm mb-0">
+              <tbody>${rosterRows}</tbody>
+            </table>
+          </div>
+          <div class="card-footer bg-transparent border-top-0 small muted">
+            ${st ? `${st.won}W – ${st.lost}L · ${st.sets_won}-${st.sets_lost} sets` : 'No results yet'}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('teams-grid').innerHTML = cards;
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

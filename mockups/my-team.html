@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Team — Estancia Volleyball</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="assets/app.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="nav-root"></div>
+  <div class="container py-4" id="content"></div>
+
+  <script src="assets/sample-data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    VB.mountNav('myteam');
+    const S = VB.S;
+    const team = VB.myTeam();
+    const el = document.getElementById('content');
+
+    if (!team) {
+      el.innerHTML = `<div class="card card-vb"><div class="card-body text-center py-5">
+        <p class="stat mb-1">🏐</p>
+        <p class="mb-1">You're not on a team yet.</p>
+        <p class="muted small mb-3">Teams are formed after the poll closes — captains are picked, then the position-based auction fills every roster.</p>
+        <a href="poll.html" class="btn btn-primary btn-sm">Check your poll status</a>
+      </div></div>`;
+    } else {
+      const rosterRows = team.roster.map(r => `
+        <tr class="roster-row">
+          <td class="small"><span class="badge-role role-${r.role === 'captain' ? 'captain' : 'player'}">${r.position}</span></td>
+          <td>${VB.userName(r.user_id)}</td>
+          <td class="text-end mono">${r.sold_price != null ? VB.fmt.pts(r.sold_price) : '<span class="muted">captain</span>'}</td>
+        </tr>`).join('');
+
+      const myMatches = S.matches.filter(m => m.team_a_id === team.id || m.team_b_id === team.id);
+      const upcoming = myMatches.filter(m => m.status === 'scheduled' || m.status === 'live');
+      const past = myMatches.filter(m => m.status === 'completed');
+
+      function matchRow(m) {
+        const opp = m.team_a_id === team.id ? m.team_b_id : m.team_a_id;
+        return `<tr class="match-row" onclick="location.href='scoreboard.html#${m.id}'">
+          <td>${VB.teamChip(opp)}</td>
+          <td class="small muted">${VB.fmt.datetime(m.scheduled_at)} · ${m.court}</td>
+          <td class="text-end">${m.status === 'completed' ? VB.matchScoreLabel(m) : VB.statusBadge(m.status)}</td>
+        </tr>`;
+      }
+
+      el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">${VB.teamChip(team.id, { link: false })}</h4>
+        <span class="muted small">Captain: ${VB.userName(team.captain_user_id)}</span>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4">
+          <div class="card card-vb h-100">
+            <div class="card-header">Budget</div>
+            <div class="card-body">
+              <div class="stat mb-1">${team.budget_remaining} <span class="muted small">pts left</span></div>
+              ${VB.meter(100 * team.budget_remaining / team.budget_total)}
+              <div class="muted small mt-1">${team.budget_total - team.budget_remaining} of ${team.budget_total} spent in the auction</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-8">
+          <div class="card card-vb h-100">
+            <div class="card-header">Roster (by position)</div>
+            <table class="table mb-0"><tbody>${rosterRows}</tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="card card-vb">
+        <div class="card-header">Matches</div>
+        <div class="table-responsive">
+          <table class="table mb-0 align-middle">
+            <tbody>
+              ${upcoming.map(matchRow).join('') || ''}
+              ${past.map(matchRow).join('') || ''}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

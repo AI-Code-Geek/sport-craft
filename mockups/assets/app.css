@@ -1,0 +1,126 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f5;
+  --border: #e3e6ea;
+  --text: #1b2733;
+  --muted: #6b7684;
+  --brand: #ea580c;
+  --brand-2: #2f6df6;
+  --ok: #16a34a;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --info: #2563eb;
+  --neutral: #94a3b8;
+  --t1: #2563eb; --t2: #dc2626; --t3: #16a34a; --t4: #d97706; --t5: #7c3aed; --t6: #0891b2;
+}
+[data-theme="dark"] {
+  --bg: #0e1116;
+  --surface: #161b22;
+  --surface-2: #1c232d;
+  --border: #2a323d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding-bottom: 3rem;
+}
+a { color: var(--brand-2); }
+.navbar-vb { background: var(--surface); border-bottom: 1px solid var(--border); }
+.navbar-vb .navbar-brand { color: var(--text); font-weight: 800; letter-spacing: -.3px; }
+.navbar-vb .nav-link { color: var(--muted); }
+.navbar-vb .nav-link.active { color: var(--text); font-weight: 700; }
+.navbar-vb .dropdown-menu { background: var(--surface); border-color: var(--border); }
+.navbar-vb .dropdown-item { color: var(--text); }
+.navbar-vb .dropdown-item:hover { background: var(--surface-2); }
+
+.card-vb { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.card-vb .card-header {
+  background: transparent; border-bottom: 1px solid var(--border);
+  font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+}
+.muted { color: var(--muted); }
+.mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.gate-card { max-width: 440px; margin: 6vh auto; }
+.stat { font-size: 1.6rem; font-weight: 800; }
+.stat-sm { font-size: 1.1rem; font-weight: 700; }
+
+/* role / status badges */
+.badge-role { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .3em .55em; border-radius: 8px; font-size: .68rem; }
+.role-admin { background: rgba(220,38,38,.14); color: var(--bad); }
+.role-organizer { background: rgba(124,58,237,.14); color: #7c3aed; }
+.role-captain { background: rgba(217,119,6,.14); color: var(--warn); }
+.role-player { background: rgba(100,116,139,.16); color: var(--neutral); }
+
+.badge-status { font-weight: 700; padding: .3em .6em; border-radius: 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+.st-confirmed, .st-completed, .st-active, .st-won { background: rgba(22,163,74,.14); color: var(--ok); }
+.st-waitlisted, .st-scheduled, .st-pending { background: rgba(217,119,6,.14); color: var(--warn); }
+.st-live { background: rgba(220,38,38,.14); color: var(--bad); animation: pulse 1.8s infinite; }
+.st-cancelled, .st-lost, .st-closed { background: rgba(100,116,139,.16); color: var(--neutral); }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.55;} }
+.live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background: var(--bad); margin-right:.4em; animation: pulse 1.4s infinite; }
+
+/* team color chips */
+.team-chip { display:inline-flex; align-items:center; gap:.4em; font-weight:600; padding:.2em .55em; border-radius:20px; background: var(--surface-2); border:1px solid var(--border); font-size:.82rem; }
+.team-dot { width:10px; height:10px; border-radius:50%; flex:none; }
+.dot-1 { background: var(--t1); } .dot-2 { background: var(--t2); } .dot-3 { background: var(--t3); }
+.dot-4 { background: var(--t4); } .dot-5 { background: var(--t5); } .dot-6 { background: var(--t6); }
+.bg-1 { background: var(--t1); } .bg-2 { background: var(--t2); } .bg-3 { background: var(--t3); }
+.bg-4 { background: var(--t4); } .bg-5 { background: var(--t5); } .bg-6 { background: var(--t6); }
+.text-t1{color:var(--t1)} .text-t2{color:var(--t2)} .text-t3{color:var(--t3)} .text-t4{color:var(--t4)} .text-t5{color:var(--t5)} .text-t6{color:var(--t6)}
+
+/* meters */
+.meter { height: 8px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.meter > span { display:block; height:100%; background: var(--brand); }
+.meter-thin { height:6px; }
+
+/* lifecycle stepper */
+.stepper { display:flex; flex-wrap:wrap; gap:.35rem; }
+.step { flex:1 1 130px; padding:.6rem .7rem; border-radius:10px; border:1px solid var(--border); background: var(--surface-2); font-size:.78rem; }
+.step .step-label { font-weight:700; display:block; }
+.step .step-sub { color: var(--muted); font-size:.72rem; }
+.step.done { border-color: rgba(22,163,74,.4); background: rgba(22,163,74,.08); }
+.step.current { border-color: var(--brand); background: rgba(234,88,12,.08); box-shadow: 0 0 0 2px rgba(234,88,12,.15) inset; }
+.step.done .step-label::before { content:"✓ "; color: var(--ok); }
+.step.current .step-label::before { content:"▶ "; color: var(--brand); }
+
+/* poll / roster rows */
+.entry-row:hover, .roster-row:hover, .match-row:hover { background: var(--surface-2); }
+.slot-empty { border:1px dashed var(--border); border-radius:10px; padding:.5rem .7rem; color: var(--muted); font-size:.85rem; }
+
+/* auction */
+.nominee-card { text-align:center; padding: 1.4rem; }
+.nominee-name { font-size: 1.8rem; font-weight: 800; }
+.bid-amount { font-size: 2.4rem; font-weight: 900; color: var(--brand); }
+.quick-bid-btn { min-width: 64px; }
+.auction-log { max-height: 260px; overflow-y:auto; font-size: .82rem; }
+.budget-rail .team-row { display:flex; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid var(--border); }
+.budget-rail .team-row:last-child { border-bottom:none; }
+
+/* bracket */
+.bracket { display:flex; gap:2rem; overflow-x:auto; padding-bottom:.5rem; }
+.bracket-round { display:flex; flex-direction:column; justify-content:space-around; gap:1.2rem; min-width:200px; }
+.bracket-match { border:1px solid var(--border); border-radius:10px; background: var(--surface); overflow:hidden; }
+.bracket-match .bm-team { display:flex; justify-content:space-between; padding:.4rem .6rem; font-size:.85rem; }
+.bracket-match .bm-team.winner { font-weight:800; background: rgba(22,163,74,.08); }
+.bracket-match .bm-team + .bm-team { border-top:1px solid var(--border); }
+.bracket-round-label { text-align:center; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color: var(--muted); margin-bottom:.4rem; }
+
+/* scoreboard */
+.score-big { font-size: 3.2rem; font-weight: 900; line-height:1; }
+.set-pill { display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px; border-radius:8px; background: var(--surface-2); font-weight:700; margin:0 .15rem; }
+.set-pill.won { background: rgba(22,163,74,.16); color: var(--ok); }
+
+.candidate-row, .match-row, .entry-row, .clickable { cursor: pointer; }
+.tf-tabs .nav-link { color: var(--muted); }
+.tf-tabs .nav-link.active { color: var(--text); background: var(--surface-2); border-radius:8px; }
+
+@media (max-width: 576px) {
+  .score-big { font-size: 2.2rem; }
+  .nominee-name { font-size: 1.35rem; }
+  .bid-amount { font-size: 1.8rem; }
+  .stat { font-size: 1.3rem; }
+}

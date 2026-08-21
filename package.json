@@ -1,19 +1,19 @@
 {
-	"name": "sport-craft",
-	"description": "Build a full-stack web application with Next.js.",
+	"name": "estancia-volleyball",
+	"description": "Community volleyball tournament manager — poll, captains, position-based auction, schedule, live scoring, playoffs.",
 	"cloudflare": {
 		"label": "Next.js Framework Starter",
 		"products": [
 			"Workers"
 		],
 		"categories": [],
-		"preview_icon_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/05eee9e0-2c04-48fd-11bf-84e65f839000/public",
-		"preview_image_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/4e913a56-fd99-4372-0586-9f1364173100/preview",
 		"publish": true
 	},
 	"dependencies": {
 		"@opennextjs/cloudflare": "1.14.0",
-		"next": "16.0.7",
+		"@tailwindcss/oxide-win32-x64-msvc": "^4.1.17",
+		"lightningcss-win32-x64-msvc": "^1.30.2",
+		"next": "16.3.1",
 		"react": "19.2.1",
 		"react-dom": "19.2.1"
 	},
@@ -24,10 +24,10 @@
 		"@types/react": "19.2.7",
 		"@types/react-dom": "19.2.3",
 		"eslint": "9.39.2",
-		"eslint-config-next": "16.0.7",
+		"eslint-config-next": "16.3.1",
 		"tailwindcss": "4.1.17",
 		"typescript": "5.9.3",
-		"wrangler": "4.123.0"
+		"wrangler": "^4.88.0"
 	},
 	"private": true,
 	"scripts": {
@@ -35,7 +35,7 @@
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
 		"check": "npm run build && tsc",
 		"deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-		"dev": "next dev",
+		"dev": "next dev -p 3100",
 		"lint": "next lint",
 		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
 		"start": "next start"
