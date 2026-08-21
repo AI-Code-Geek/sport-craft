@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect } from "@/lib/api-client";
+import { listOrgRequests, decideOrgRequest, listOrganizations, createOrganizationDirect, assignOrgAdmin } from "@/lib/api-client";
 import type { OrgRequestView, OrganizationSummary } from "@/lib/api-client";
 import { Card } from "@/components/ui";
 import { FEATURE_LABELS, ALL_FEATURES_ENABLED } from "@/lib/types";
@@ -19,6 +19,10 @@ export default function OrganizationsConsolePage() {
 	const [newOrgFeatures, setNewOrgFeatures] = useState<Record<FeatureKey, boolean>>(ALL_FEATURES_ENABLED);
 	const [creating, setCreating] = useState(false);
 	const [createError, setCreateError] = useState("");
+
+	const [assignEmail, setAssignEmail] = useState<Record<string, string>>({});
+	const [assignBusy, setAssignBusy] = useState<string | null>(null);
+	const [assignError, setAssignError] = useState<Record<string, string>>({});
 
 	async function load() {
 		const [{ data: r }, { data: o }] = await Promise.all([listOrgRequests(), listOrganizations()]);
@@ -56,6 +60,27 @@ export default function OrganizationsConsolePage() {
 			await load();
 		} finally {
 			setCreating(false);
+		}
+	}
+
+	async function doAssign(communityId: string) {
+		const email = (assignEmail[communityId] ?? "").trim();
+		if (!email) return;
+		setAssignBusy(communityId);
+		setAssignError((prev) => ({ ...prev, [communityId]: "" }));
+		try {
+			const { ok, data } = await assignOrgAdmin(communityId, email);
+			if (!ok) {
+				setAssignError((prev) => ({
+					...prev,
+					[communityId]: data.error === "user_not_found" ? "No account with that email yet — they need to register first." : "Couldn't assign Org Admin.",
+				}));
+				return;
+			}
+			setAssignEmail((prev) => ({ ...prev, [communityId]: "" }));
+			await load();
+		} finally {
+			setAssignBusy(null);
 		}
 	}
 
@@ -137,14 +162,32 @@ export default function OrganizationsConsolePage() {
 			<Card title="All organizations">
 				<div className="flex flex-col divide-y divide-border">
 					{organizations.map(({ community, memberCount, orgAdmins }) => (
-						<div key={community.id} className="flex items-center justify-between py-2">
-							<div>
-								<div className="font-semibold">{community.name} <span className="text-xs font-normal text-muted">({community.sport})</span></div>
-								<div className="text-xs text-muted">
-									{memberCount} active member{memberCount === 1 ? "" : "s"} · Org Admins: {orgAdmins.length > 0 ? orgAdmins.map((a) => a.name).join(", ") : "none yet"}
+						<div key={community.id} className="flex flex-col gap-2 py-3">
+							<div className="flex items-center justify-between">
+								<div>
+									<div className="font-semibold">{community.name} <span className="text-xs font-normal text-muted">({community.sport})</span></div>
+									<div className="text-xs text-muted">
+										{memberCount} active member{memberCount === 1 ? "" : "s"} · Org Admins: {orgAdmins.length > 0 ? orgAdmins.map((a) => a.name).join(", ") : "none yet"}
+									</div>
 								</div>
+								<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
 							</div>
-							<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
+							<div className="flex items-center gap-2">
+								<input
+									className="input w-auto flex-1"
+									placeholder="Assign Org Admin by email…"
+									value={assignEmail[community.id] ?? ""}
+									onChange={(e) => setAssignEmail((prev) => ({ ...prev, [community.id]: e.target.value }))}
+								/>
+								<button
+									className="btn-outline"
+									disabled={assignBusy === community.id || !(assignEmail[community.id] ?? "").trim()}
+									onClick={() => doAssign(community.id)}
+								>
+									{assignBusy === community.id ? "Assigning…" : "Assign"}
+								</button>
+							</div>
+							{assignError[community.id] ? <p className="text-xs text-bad">{assignError[community.id]}</p> : null}
 						</div>
 					))}
 					{organizations.length === 0 ? <p className="py-2 text-sm text-muted">No organizations yet.</p> : null}

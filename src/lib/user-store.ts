@@ -105,6 +105,28 @@ export async function addMembership(user: UserRecord, communityId: string, role:
 }
 
 /**
+ * Super Admin assigns an existing account as an org's Org Admin — creates an active membership if the
+ * user has none there yet, or promotes/activates an existing (pending or player) membership. Unlike
+ * `addMembership`, this never throws "already_member" — it's meant to work regardless of the user's
+ * current relationship (if any) to that org.
+ */
+export async function assignOrgAdmin(userid: string, communityId: string): Promise<UserRecord | null> {
+	const user = await getUserById(userid);
+	if (!user) return null;
+	const existing = membershipFor(user, communityId);
+	if (existing) {
+		existing.role = "org_admin";
+		existing.status = "active";
+	} else {
+		user.memberships.push({ communityId, role: "org_admin", status: "active", suspended: false, joinedAt: new Date().toISOString() });
+		await idxAppend(communityUsersIndex(communityId), user.userid);
+	}
+	user.lastActiveCommunityId = communityId;
+	await putUser(user);
+	return user;
+}
+
+/**
  * Self-registration entry point (join-by-invite-code): if the email already has an account, verifies
  * the supplied password matches it and adds a new PENDING "player" membership — same identity, one more
  * org, awaiting that org's Org Admin approval. Otherwise creates a brand-new account first.
