@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	const tournament = await getTournament(id);
 	if (!tournament || tournament.communityId !== session.communityId) return json({ error: "not_found" }, 404);
 
-	const [roleContext, user] = await Promise.all([getRoleContext(id, session), getUserById(session.userid)]);
+	const [roleContext, user] = await Promise.all([getRoleContext(session, id), getUserById(session.userid)]);
 	const list = await getNotificationsForUser(id, session.userid, roleContext);
 	const seenAt = user?.notificationsSeenAt?.[id];
 	const notifications = list.map((n) => ({ ...n, unread: !seenAt || n.createdAt > seenAt }));

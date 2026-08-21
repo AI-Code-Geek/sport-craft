@@ -30,7 +30,9 @@ export async function GET(): Promise<Response> {
 
 	const activeCommunity = session.communityId ? await getCommunity(session.communityId) : null;
 	const tournament = session.communityId ? await getActiveTournament(session.communityId) : null;
-	const roleContext = tournament ? await getRoleContext(tournament.id, session) : null;
+	// Available as soon as there's an active org — doesn't need a tournament to exist yet (see
+	// authz.ts's getRoleContext doc comment), otherwise nobody could ever create the first one.
+	const roleContext = session.communityId ? await getRoleContext(session, tournament?.id) : null;
 
 	return json({
 		user: publicUser(user, session.communityId ?? undefined),
