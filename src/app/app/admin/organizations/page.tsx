@@ -182,17 +182,24 @@ export default function OrganizationsConsolePage() {
 						<div key={community.id} className="flex flex-col gap-2 py-3">
 							<div className="flex items-center justify-between">
 								<div>
-									<div className="font-semibold">{community.name} <span className="text-xs font-normal text-muted">({community.sport})</span></div>
+									<button
+										className="font-semibold text-brand underline-offset-2 hover:underline"
+										disabled={switching === community.id}
+										onClick={() => goToDashboard(community.id)}
+									>
+										{community.name}
+									</button>{" "}
+									<span className="text-xs font-normal text-muted">
+										({community.sport}){iAmAdmin ? " · you're an Org Admin here" : ""}
+									</span>
 									<div className="text-xs text-muted">
 										{memberCount} active member{memberCount === 1 ? "" : "s"} · Org Admins: {orgAdmins.length > 0 ? orgAdmins.map((a) => a.name).join(", ") : "none yet"}
 									</div>
 								</div>
 								<div className="flex items-center gap-2">
-									{iAmAdmin ? (
-										<button className="btn-secondary" disabled={switching === community.id} onClick={() => goToDashboard(community.id)}>
-											{switching === community.id ? "Opening…" : "Go to dashboard →"}
-										</button>
-									) : null}
+									<button className="btn-secondary" disabled={switching === community.id} onClick={() => goToDashboard(community.id)}>
+										{switching === community.id ? "Opening…" : "Go to dashboard →"}
+									</button>
 									<code className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-xs">{community.inviteCode}</code>
 								</div>
 							</div>
