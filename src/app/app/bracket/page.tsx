@@ -23,7 +23,7 @@ export default function BracketPage() {
 
 	if (bracket === undefined) return <Card><p className="text-sm text-muted">Loading…</p></Card>;
 	if (!bracket) {
-		return <EmptyState icon="🏆" title="No bracket yet" sub="The organizer generates the playoff bracket once the group stage is complete." />;
+		return <EmptyState icon="🏆" title="No bracket yet" sub="The Org Admin generates the playoff bracket once the group stage is complete." />;
 	}
 
 	return (

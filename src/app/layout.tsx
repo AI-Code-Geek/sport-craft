@@ -6,8 +6,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	title: "Estancia Volleyball League",
-	description: "Community volleyball tournament manager — poll, teams, auction, schedule, live scores.",
+	title: "SportCraft",
+	description: "Multi-sport community league platform — poll, teams, auction, schedule, live scores.",
 };
 
 const themeScript = `try{var t=localStorage.getItem('vb_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}`;

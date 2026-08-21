@@ -6,7 +6,7 @@ import { json, errorMessage } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
-/** Self-service join/withdraw. An organizer/super admin may act on another userId (admin removal). */
+/** Self-service join/withdraw. An Org Admin/Super Admin may act on another userId (admin removal). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
 	const session = await readSession();
 	if (!session) return json({ error: "unauthorized" }, 401);

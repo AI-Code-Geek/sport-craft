@@ -3,28 +3,33 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchMe, logout, getNotifications, markNotificationsSeen } from "@/lib/api-client";
-import type { NotificationView } from "@/lib/api-client";
-import type { PublicUser } from "@/lib/types";
+import { fetchMe, logout, getNotifications, markNotificationsSeen, switchOrg } from "@/lib/api-client";
+import type { NotificationView, MembershipView } from "@/lib/api-client";
+import type { PublicUser, FeatureKey } from "@/lib/types";
 import { fmtDateTime } from "@/lib/format";
 
-type RoleCtx = { isSuperAdmin: boolean; isOrganizer: boolean; canManage: boolean; captainTeamId: string | null };
+type RoleCtx = { isSuperAdmin: boolean; isOrgAdmin: boolean; canManage: boolean; captainTeamId: string | null };
 
-const PARTICIPANT_LINKS: [string, string][] = [
-	["/app", "Home"],
-	["/app/poll", "Poll"],
-	["/app/teams", "Teams"],
-	["/app/teams/mine", "My Team"],
-	["/app/auction", "Auction"],
-	["/app/schedule", "Schedule"],
-	["/app/standings", "Standings"],
-	["/app/bracket", "Bracket"],
+/** `null` = always shown, no feature gate (e.g. Home). */
+const PARTICIPANT_LINKS: [string, string, FeatureKey | null][] = [
+	["/app", "Home", null],
+	["/app/poll", "Poll", "poll"],
+	["/app/teams", "Teams", "teams"],
+	["/app/teams/mine", "My Team", "teams"],
+	["/app/auction", "Auction", "auction"],
+	["/app/schedule", "Schedule", "scheduler"],
+	["/app/standings", "Standings", "scheduler"],
+	["/app/bracket", "Bracket", "brackets"],
 ];
 
 export function Nav() {
 	const pathname = usePathname();
 	const [user, setUser] = useState<PublicUser | null>(null);
 	const [role, setRole] = useState<RoleCtx | null>(null);
+	const [isPlatformSuperAdmin, setIsPlatformSuperAdmin] = useState(false);
+	const [memberships, setMemberships] = useState<MembershipView[]>([]);
+	const [features, setFeatures] = useState<Record<FeatureKey, boolean> | null>(null);
+	const [communityId, setCommunityId] = useState<string | null>(null);
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [notifications, setNotifications] = useState<NotificationView[]>([]);
@@ -35,6 +40,10 @@ export function Nav() {
 		fetchMe().then(async ({ data }) => {
 			setUser(data.user ?? null);
 			setRole(data.roleContext ?? null);
+			setIsPlatformSuperAdmin(data.isSuperAdmin ?? false);
+			setMemberships(data.memberships ?? []);
+			setFeatures(data.features ?? null);
+			setCommunityId(data.communityId ?? null);
 			setTournamentId(data.tournamentId ?? null);
 			if (data.tournamentId) {
 				const { data: n } = await getNotifications(data.tournamentId);
@@ -43,6 +52,12 @@ export function Nav() {
 			}
 		});
 	}, [pathname]);
+
+	async function onSwitchOrg(id: string) {
+		if (id === communityId) return;
+		await switchOrg(id);
+		window.location.href = "/app";
+	}
 
 	async function toggleBell() {
 		const next = !bellOpen;
@@ -68,13 +83,10 @@ export function Nav() {
 
 	const linkCls = (href: string) => `text-sm ${pathname === href ? "font-semibold text-foreground" : "text-muted"}`;
 	const canManage = role?.canManage ?? false;
-	const isSuperAdmin = role?.isSuperAdmin ?? false;
+	const isOrgAdmin = role?.isOrgAdmin ?? false;
 
 	const adminLinks: [string, string][] = [];
-	if (isSuperAdmin) {
-		adminLinks.push(["/app/admin/tournaments/new", "New tournament"]);
-		adminLinks.push(["/app/admin/organizers", "Organizers"]);
-	}
+	if (canManage) adminLinks.push(["/app/admin/tournaments/new", "New tournament"]);
 	adminLinks.push(
 		["/app/admin/tournament", "Tournament settings"],
 		["/app/admin/poll", "Poll"],
@@ -85,16 +97,22 @@ export function Nav() {
 		["/app/admin/scoring", "Scoring"],
 		["/app/admin/playoffs", "Playoffs"],
 	);
-	if (isSuperAdmin) adminLinks.push(["/app/admin/users", "Users"]);
+	if (canManage) {
+		adminLinks.push(["/app/admin/users", "Users"]);
+		adminLinks.push(["/app/admin/settings", "Org settings"]);
+	}
+
+	const activeMemberships = memberships.filter((m) => m.status === "active");
 
 	const initials = (user?.name ?? "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 
 	const links = (
 		<>
-			{PARTICIPANT_LINKS.map(([href, label]) => (
+			{PARTICIPANT_LINKS.filter(([, , featureKey]) => featureKey === null || features?.[featureKey] !== false).map(([href, label]) => (
 				<Link key={href} href={href} className={linkCls(href)}>{label}</Link>
 			))}
 			{canManage ? <Link href="/app/admin" className={linkCls("/app/admin")}>Admin</Link> : null}
+			{isPlatformSuperAdmin ? <Link href="/app/admin/organizations" className={linkCls("/app/admin/organizations")}>Organizations</Link> : null}
 		</>
 	);
 
@@ -102,14 +120,26 @@ export function Nav() {
 		<nav className="sticky top-0 z-10 overflow-x-clip border-b border-border bg-surface px-4 py-3">
 			<div className="flex items-center gap-3 md:gap-4">
 				<Link href="/app" className="shrink-0 font-extrabold tracking-tight">
-					🏐 Estancia<span className="text-brand">VB</span>
+					🏐 Sport<span className="text-brand">Craft</span>
 				</Link>
 				<div className="hidden gap-4 md:flex">{links}</div>
 				<div className="ml-auto flex min-w-0 items-center gap-2">
-					{canManage ? (
+					{isPlatformSuperAdmin || isOrgAdmin ? (
 						<span className="hidden rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs text-muted lg:inline">
-							{isSuperAdmin ? "Super Admin" : "Organizer"}
+							{isPlatformSuperAdmin ? "Super Admin" : "Org Admin"}
 						</span>
+					) : null}
+					{activeMemberships.length > 1 ? (
+						<select
+							className="input hidden w-auto py-1 text-xs lg:block"
+							value={communityId ?? ""}
+							onChange={(e) => onSwitchOrg(e.target.value)}
+							aria-label="Switch organization"
+						>
+							{activeMemberships.map((m) => (
+								<option key={m.communityId} value={m.communityId}>{m.communityName}</option>
+							))}
+						</select>
 					) : null}
 					{role?.captainTeamId ? (
 						<span className="hidden rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-xs font-medium text-warn lg:inline">

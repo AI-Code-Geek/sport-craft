@@ -1,7 +1,7 @@
 /** Typed fetch wrappers for every /api/* route. Client-safe (no server-only imports). */
 import type {
 	PublicUser, Tournament, Poll, PollEntry, Team, RosterEntry, PositionsState, AuctionState,
-	AuctionLogEntry, Match, StandingsRow, Bracket, AppNotification,
+	AuctionLogEntry, Match, StandingsRow, Bracket, AppNotification, Community, SportType, FeatureKey,
 } from "./types";
 
 async function call<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
@@ -18,9 +18,16 @@ const get = <T>(url: string) => call<T>(url);
 
 export interface RoleContext {
 	isSuperAdmin: boolean;
-	isOrganizer: boolean;
+	isOrgAdmin: boolean;
 	canManage: boolean;
 	captainTeamId: string | null;
+}
+
+export interface MembershipView {
+	communityId: string;
+	communityName: string;
+	role: "org_admin" | "player";
+	status: "pending" | "active";
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -28,17 +35,23 @@ export const login = (email: string, password: string) => post<{ user: PublicUse
 export const register = (name: string, email: string, password: string, inviteCode: string) =>
 	post<{ user: PublicUser }>("/api/auth/register", { name, email, password, inviteCode });
 export const logout = () => post<{ ok: boolean }>("/api/auth/logout");
-export const fetchMe = () => get<{ user: PublicUser | null; tournamentId: string | null; roleContext: RoleContext | null }>("/api/me");
+export const fetchMe = () =>
+	get<{
+		user: PublicUser | null;
+		isSuperAdmin: boolean;
+		communityId: string | null;
+		features: Record<FeatureKey, boolean> | null;
+		memberships: MembershipView[];
+		tournamentId: string | null;
+		roleContext: RoleContext | null;
+	}>("/api/me");
+export const switchOrg = (communityId: string) => post<{ ok: boolean }>("/api/me/switch-org", { communityId });
 
 // ── Tournaments ───────────────────────────────────────────────────────────────
 export const createTournament = (input: Record<string, unknown>) => post<{ tournament: Tournament }>("/api/tournaments", input);
 export const listTournaments = () => get<{ tournaments: Tournament[] }>("/api/tournaments");
 export const getTournament = (id: string) => get<{ tournament: Tournament }>(`/api/tournaments/${id}`);
 export const updateTournament = (id: string, patchBody: Record<string, unknown>) => patch<{ tournament: Tournament }>(`/api/tournaments/${id}`, patchBody);
-
-export const getOrganizers = (id: string) => get<{ organizers: PublicUser[]; candidates: PublicUser[] }>(`/api/tournaments/${id}/organizers`);
-export const setOrganizer = (id: string, action: "add" | "remove", userId: string) =>
-	post<{ organizerIds: string[] }>(`/api/tournaments/${id}/organizers`, { action, userId });
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
 export interface PollEntryView extends PollEntry {
@@ -123,7 +136,49 @@ export interface NotificationView extends AppNotification {
 export const getNotifications = (id: string) => get<{ notifications: NotificationView[]; unreadCount: number }>(`/api/tournaments/${id}/notifications`);
 export const markNotificationsSeen = (id: string) => post<{ ok: boolean }>(`/api/tournaments/${id}/notifications`);
 
-// ── Community users ───────────────────────────────────────────────────────────
-export const getCommunityUsers = () => get<{ users: PublicUser[] }>("/api/community/users");
-export const updateCommunityUser = (userId: string, patchBody: { role?: "super_admin" | "player"; suspended?: boolean }) =>
+// ── Organization requests (public submit; Super Admin approves) ────────────────
+export const submitOrgRequest = (
+	orgName: string,
+	sport: SportType,
+	features: Record<FeatureKey, boolean>,
+	name: string,
+	email: string,
+	password: string,
+) => post<{ request: { id: string; orgName: string; status: string } }>("/api/organizations/requests", { orgName, sport, features, name, email, password });
+
+export interface OrgRequestView {
+	id: string;
+	orgName: string;
+	sport: SportType;
+	features: Record<FeatureKey, boolean>;
+	requesterName: string;
+	requesterEmail: string;
+	status: "pending" | "approved" | "rejected";
+	communityId: string | null;
+	createdAt: string;
+	decidedAt: string | null;
+	decidedBy: string | null;
+}
+export const listOrgRequests = () => get<{ requests: OrgRequestView[] }>("/api/organizations/requests");
+export const decideOrgRequest = (id: string, action: "approve" | "reject") =>
+	patch<{ request: OrgRequestView }>(`/api/organizations/requests/${id}`, { action });
+
+// ── Organizations (Super Admin platform console) ────────────────────────────────
+export interface OrganizationSummary {
+	community: Community;
+	memberCount: number;
+	orgAdmins: PublicUser[];
+}
+export const listOrganizations = () => get<{ organizations: OrganizationSummary[] }>("/api/organizations");
+export const createOrganizationDirect = (orgName: string, sport: SportType) =>
+	post<{ community: Community }>("/api/organizations", { orgName, sport });
+
+// ── Community / organization settings (Org Admin / Super Admin, own active org) ─
+export const getCommunitySettings = () => get<{ community: Community }>("/api/community");
+export const updateCommunitySettings = (patchBody: { name?: string; sport?: SportType; features?: Partial<Record<FeatureKey, boolean>>; regenerateInviteCode?: boolean }) =>
+	patch<{ community: Community }>("/api/community", patchBody);
+
+// ── Community users (own active org) ────────────────────────────────────────────
+export const getCommunityUsers = () => get<{ members: PublicUser[]; pending: PublicUser[] }>("/api/community/users");
+export const updateCommunityUser = (userId: string, patchBody: { role?: "org_admin" | "player"; suspended?: boolean; decision?: "approve" | "reject" }) =>
 	patch<{ user: PublicUser }>("/api/community/users", { userId, ...patchBody });

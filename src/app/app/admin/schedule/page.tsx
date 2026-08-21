@@ -11,7 +11,7 @@ export default function AdminSchedulePage() {
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [matches, setMatches] = useState<Match[]>([]);
 	const [teams, setTeams] = useState<TeamView[]>([]);
-	const [venue, setVenue] = useState("Estancia Community Gym");
+	const [venue, setVenue] = useState("Community Gym");
 	const [courts, setCourts] = useState("Court A, Court B");
 	const [times, setTimes] = useState("18:00, 19:15");
 	const [startDate, setStartDate] = useState("2026-09-06");

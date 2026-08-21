@@ -35,15 +35,15 @@ export async function getNotifications(tournamentId: string): Promise<AppNotific
 
 export interface ViewerContext {
 	isSuperAdmin: boolean;
-	isOrganizer: boolean;
+	isOrgAdmin: boolean;
 	captainTeamId: string | null;
 }
 
 /** Notifications this specific user should see, newest first, filtered by their real relationship to the tournament. */
 export async function getNotificationsForUser(tournamentId: string, userId: string, ctx: ViewerContext): Promise<AppNotification[]> {
 	const all = await getNotifications(tournamentId);
-	const managesTournament = ctx.isSuperAdmin || ctx.isOrganizer;
-	if (managesTournament) return all.slice().reverse(); // organizers/admin see every notification
+	const managesTournament = ctx.isSuperAdmin || ctx.isOrgAdmin;
+	if (managesTournament) return all.slice().reverse(); // org admins/super admin see every notification
 
 	const isCaptain = !!ctx.captainTeamId;
 	let isConfirmed = isCaptain;
@@ -57,7 +57,7 @@ export async function getNotificationsForUser(tournamentId: string, userId: stri
 			if (n.audience === "all") return true;
 			if (n.audience === "confirmed") return isConfirmed;
 			if (n.audience === "captains") return isCaptain;
-			return false; // "organizers" — already handled above
+			return false; // "org_admins" — already handled above
 		})
 		.slice()
 		.reverse();

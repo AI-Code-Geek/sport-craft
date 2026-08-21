@@ -55,7 +55,7 @@ export default function AuctionPage() {
 
 	if (auction === undefined) return <Card><p className="text-sm text-muted">Loading…</p></Card>;
 	if (!auction) {
-		return <EmptyState icon="🔨" title="Auction not started" sub="The organizer starts the live auction once captains are picked and every player is categorized by position." />;
+		return <EmptyState icon="🔨" title="Auction not started" sub="The Org Admin starts the live auction once captains are picked and every player is categorized by position." />;
 	}
 
 	const myTeam = teams.find((t) => t.id === captainTeamId);

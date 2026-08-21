@@ -3,20 +3,35 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchMe, getTournament, getPoll, getTeams, getSchedule } from "@/lib/api-client";
-import type { PollEntryView } from "@/lib/api-client";
+import type { PollEntryView, MembershipView } from "@/lib/api-client";
 import { Card, LifecycleStepper, TeamChip } from "@/components/ui";
 import type { Tournament, Team, Match } from "@/lib/types";
 
+type Phase = "loading" | "pending" | "no-org" | "no-tournament" | "ready";
+
 export default function HomePage() {
+	const [phase, setPhase] = useState<Phase>("loading");
+	const [pendingOrgs, setPendingOrgs] = useState<MembershipView[]>([]);
 	const [tournament, setTournament] = useState<Tournament | null>(null);
-	const [role, setRole] = useState<{ isSuperAdmin: boolean; isOrganizer: boolean; canManage: boolean; captainTeamId: string | null } | null>(null);
+	const [role, setRole] = useState<{ isSuperAdmin: boolean; isOrgAdmin: boolean; canManage: boolean; captainTeamId: string | null } | null>(null);
 	const [myEntry, setMyEntry] = useState<PollEntryView | null>(null);
 	const [myTeam, setMyTeam] = useState<Team | null>(null);
 	const [liveMatch, setLiveMatch] = useState<Match | null>(null);
 
 	useEffect(() => {
 		fetchMe().then(async ({ data }) => {
-			if (!data.user || !data.tournamentId) return;
+			if (!data.user) return;
+			if (!data.communityId) {
+				const pending = (data.memberships ?? []).filter((m) => m.status === "pending");
+				setPendingOrgs(pending);
+				setPhase(pending.length > 0 ? "pending" : "no-org");
+				return;
+			}
+			if (!data.tournamentId) {
+				setRole(data.roleContext ?? null);
+				setPhase("no-tournament");
+				return;
+			}
 			setRole(data.roleContext ?? null);
 
 			const [{ data: t }, { data: p }, { data: teams }, { data: sched }] = await Promise.all([
@@ -29,8 +44,55 @@ export default function HomePage() {
 			setMyEntry(p.poll?.entries.find((e) => e.userId === data.user!.userid) ?? null);
 			setMyTeam(teams.teams?.find((tm) => tm.roster.some((r) => r.userId === data.user!.userid)) ?? null);
 			setLiveMatch(sched.matches?.find((m) => m.status === "live") ?? null);
+			setPhase("ready");
 		});
 	}, []);
+
+	if (phase === "loading") {
+		return (
+			<Card>
+				<p className="text-sm text-muted">Loading…</p>
+			</Card>
+		);
+	}
+
+	if (phase === "pending") {
+		return (
+			<Card title="Awaiting approval">
+				<div className="flex flex-col gap-2">
+					{pendingOrgs.map((m) => (
+						<p key={m.communityId} className="text-sm">
+							Your request to join <strong>{m.communityName}</strong> is awaiting approval from that org&apos;s Org Admin.
+						</p>
+					))}
+				</div>
+			</Card>
+		);
+	}
+
+	if (phase === "no-org") {
+		return (
+			<Card>
+				<p className="text-sm text-muted">You&apos;re not a member of any organization yet — join one with an invite code from the login page.</p>
+			</Card>
+		);
+	}
+
+	if (phase === "no-tournament") {
+		const canManage = role?.canManage ?? false;
+		return (
+			<Card>
+				<p className="text-sm text-muted">
+					No tournament yet.{" "}
+					{canManage ? (
+						<Link href="/app/admin/tournaments/new" className="text-brand">Create one to get started →</Link>
+					) : (
+						"Ask your Org Admin to create one."
+					)}
+				</p>
+			</Card>
+		);
+	}
 
 	if (!tournament) {
 		return (
@@ -60,7 +122,7 @@ export default function HomePage() {
 				<Card title="Your next action">
 					{canManage ? (
 						<div className="flex flex-col gap-3">
-							<p className="text-sm">You&apos;re running this tournament as {role?.isSuperAdmin ? "Super Admin" : "Organizer"}. Jump into the admin console to advance the next stage.</p>
+							<p className="text-sm">You&apos;re running this tournament as {role?.isSuperAdmin ? "Super Admin" : "Org Admin"}. Jump into the admin console to advance the next stage.</p>
 							<Link href="/app/admin" className="btn-primary w-fit">Open admin console →</Link>
 						</div>
 					) : tournament.status.startsWith("poll") && (!myEntry || myEntry.status === "withdrawn") ? (

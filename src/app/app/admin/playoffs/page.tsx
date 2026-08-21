@@ -13,7 +13,7 @@ export default function AdminPlayoffsPage() {
 	const [remaining, setRemaining] = useState(0);
 	const [bracket, setBracket] = useState<Bracket | null>(null);
 	const [cutoff, setCutoff] = useState(4);
-	const [venue, setVenue] = useState("Estancia Community Gym");
+	const [venue, setVenue] = useState("Community Gym");
 	const [court, setCourt] = useState("Center Court");
 	const [error, setError] = useState("");
 

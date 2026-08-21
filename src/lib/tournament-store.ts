@@ -1,8 +1,10 @@
 /**
- * Tournament CRUD + organizer assignment. KV keys:
+ * Tournament CRUD. KV keys:
  *   `tournament:<id>` -> Tournament
  *   `idx:community-tournaments:<communityId>` -> id[]  (creation order; last = "active" tournament)
- *   `organizers:<tournamentId>` -> userId[]
+ *
+ * Who may manage a tournament is derived from the org's own Org Admin membership (see authz.ts /
+ * user-store.ts) — there is no per-tournament assignment list any more.
  */
 import { kvGetJSON, kvPutJSON, idxAppend, idxList } from "./kv";
 import { genTournamentId } from "./ids";
@@ -10,7 +12,6 @@ import type { Tournament, TournamentStatus } from "./types";
 
 const key = (id: string) => `tournament:${id}`;
 const communityIndex = (communityId: string) => `idx:community-tournaments:${communityId}`;
-const organizersKey = (tournamentId: string) => `organizers:${tournamentId}`;
 
 export interface CreateTournamentInput {
 	communityId: string;
@@ -47,7 +48,6 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
 	};
 	await kvPutJSON(key(t.id), t);
 	await idxAppend(communityIndex(input.communityId), t.id);
-	await kvPutJSON(organizersKey(t.id), [input.createdBy]);
 	return t;
 }
 
@@ -78,27 +78,4 @@ export async function setTournamentStatus(id: string, status: TournamentStatus):
 	t.status = status;
 	await putTournament(t);
 	return t;
-}
-
-// ── Organizers ────────────────────────────────────────────────────────────────
-
-export async function getOrganizers(tournamentId: string): Promise<string[]> {
-	return (await kvGetJSON<string[]>(organizersKey(tournamentId))) ?? [];
-}
-
-export async function addOrganizer(tournamentId: string, userId: string): Promise<string[]> {
-	const list = await getOrganizers(tournamentId);
-	if (!list.includes(userId)) list.push(userId);
-	await kvPutJSON(organizersKey(tournamentId), list);
-	return list;
-}
-
-export async function removeOrganizer(tournamentId: string, userId: string): Promise<string[]> {
-	const list = (await getOrganizers(tournamentId)).filter((id) => id !== userId);
-	await kvPutJSON(organizersKey(tournamentId), list);
-	return list;
-}
-
-export async function isOrganizer(tournamentId: string, userId: string): Promise<boolean> {
-	return (await getOrganizers(tournamentId)).includes(userId);
 }

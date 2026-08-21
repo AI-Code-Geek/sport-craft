@@ -8,7 +8,7 @@ import type { PublicUser } from "@/lib/types";
 
 export default function ProfilePage() {
 	const [user, setUser] = useState<PublicUser | null>(null);
-	const [role, setRole] = useState<{ isSuperAdmin: boolean; isOrganizer: boolean } | null>(null);
+	const [role, setRole] = useState<{ isSuperAdmin: boolean; isOrgAdmin: boolean } | null>(null);
 	const [prefs, setPrefs] = useState({ pollUpdates: true, myMatches: true, allScores: false, auctionTurn: true });
 	const [saved, setSaved] = useState(false);
 
@@ -35,7 +35,7 @@ export default function ProfilePage() {
 					</div>
 					<div className="mb-2">
 						<span className="rounded-md bg-neutral/20 px-2 py-0.5 text-xs font-bold uppercase text-neutral">
-							{role?.isSuperAdmin ? "Super Admin" : role?.isOrganizer ? "Organizer" : "Player"}
+							{role?.isSuperAdmin ? "Super Admin" : role?.isOrgAdmin ? "Org Admin" : "Player"}
 						</span>
 					</div>
 					<button className="btn-outline">Change password</button>

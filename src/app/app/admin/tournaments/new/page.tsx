@@ -7,7 +7,7 @@ import { Card } from "@/components/ui";
 
 export default function NewTournamentPage() {
 	const router = useRouter();
-	const [name, setName] = useState("Estancia Fall Volleyball League 2026");
+	const [name, setName] = useState("Fall Volleyball League 2026");
 	const [maxTeams, setMaxTeams] = useState(6);
 	const [teamSize, setTeamSize] = useState(6);
 	const [budgetPoints, setBudgetPoints] = useState(100);
@@ -26,13 +26,13 @@ export default function NewTournamentPage() {
 		});
 		setBusy(false);
 		if (!ok) return setError(data.error ?? "Failed to create tournament.");
-		router.push("/app/admin/organizers");
+		router.push("/app/admin/org-admins");
 	}
 
 	return (
 		<div className="flex flex-col gap-4">
 			<h1 className="text-xl font-bold">Create a new tournament</h1>
-			<p className="text-sm text-muted">Super Admin only. Once created, assign an Organizer committee to run it day to day.</p>
+			<p className="text-sm text-muted">Super Admin only. Once created, assign an Org Admin committee to run it day to day.</p>
 
 			<Card title="Core variables" className="max-w-xl">
 				<div className="flex flex-col gap-3">

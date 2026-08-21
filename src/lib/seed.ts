@@ -7,28 +7,35 @@
  */
 import { kvGetString, kvPutString } from "./kv";
 import { createCommunity } from "./community-store";
-import { registerUser } from "./user-store";
-import { createTournament, addOrganizer, putTournament, getTournament } from "./tournament-store";
+import { createAccount, addMembership } from "./user-store";
+import { createTournament, putTournament, getTournament } from "./tournament-store";
 import { openPoll, joinPoll, closePoll } from "./poll-store";
 import { setCaptainsAndNames, getTeams } from "./team-store";
 import { initPositions, finalizePositions } from "./position-store";
 import { startAuction, placeBid, resolveCurrent, getAuction, teamNeedsCategory } from "./auction-store";
 import { generateRoundRobinSchedule, getMatches, putMatches } from "./match-store";
 import { DEMO_ADMIN_EMAIL, DEMO_PASSWORD } from "./seed-client-hint";
-import type { Match, SetScore, UserRecord } from "./types";
+import type { Match, SetScore, UserRecord, CommunityRole } from "./types";
+
+/** Seed-only convenience: create an account and immediately give it an ACTIVE membership — seeded demo
+ *  data bypasses the normal join-request approval queue entirely (there's no one to approve it against). */
+async function seedMember(communityId: string, name: string, email: string, password: string, role: CommunityRole = "player"): Promise<UserRecord> {
+	const user = await createAccount({ name, email, password });
+	return addMembership(user, communityId, role, "active");
+}
 
 const SEED_MARKER = "idx:seeded:v1";
 export { DEMO_ADMIN_EMAIL, DEMO_PASSWORD };
 
-const FIRST = ["Meera", "David", "Priya", "Alex", "Jordan", "Sam", "Taylor", "Riley", "Chris", "Morgan",
+const FIRST = ["Noor", "David", "Priya", "Alex", "Jordan", "Sam", "Taylor", "Riley", "Chris", "Morgan",
 	"Jamie", "Casey", "Devon", "Avery", "Reese", "Cameron", "Drew", "Skylar", "Rowan", "Hayden"];
-const LAST = ["Iyer", "Kim", "Nair", "Santos", "Reyes", "Patel", "Okafor", "Fischer", "Costa", "Nguyen",
+const LAST = ["Bergstrom", "Kim", "Nair", "Santos", "Reyes", "Patel", "Okafor", "Fischer", "Costa", "Nguyen",
 	"Bianchi", "Haddad", "Wallace", "Torres", "Meyer", "Alvarez", "Kowalski", "Duarte", "Hollis", "Petrov"];
 function genName(i: number): string {
 	return FIRST[i % FIRST.length] + " " + LAST[(i * 7 + 3) % LAST.length];
 }
 function genEmail(name: string, i: number): string {
-	return name.toLowerCase().replace(/[^a-z]+/g, ".") + i + "@estancia.demo";
+	return name.toLowerCase().replace(/[^a-z]+/g, ".") + i + "@sportcraft.demo";
 }
 
 function randomSet(setNumber: number, pointsPerSet: number, winBy: number): SetScore {
@@ -67,7 +74,9 @@ function simulateCompletedMatch(match: Match, setsToWin: number, pointsPerSet: n
 // in principle but vanishingly unlikely for a lazily-seeded demo community, and self-heal on retry.)
 let seedPromise: Promise<void> | null = null;
 
+/** Local dev only — production never auto-seeds; every org there comes from the real request/join flow. */
 export async function ensureDemoSeed(): Promise<void> {
+	if (process.env.NODE_ENV === "production") return;
 	if (seedPromise) return seedPromise;
 	seedPromise = runSeed();
 	try {
@@ -82,28 +91,32 @@ async function runSeed(): Promise<void> {
 	if (await kvGetString(SEED_MARKER)) return;
 	await kvPutString(SEED_MARKER, "seeding");
 
-	const community = await createCommunity("Estancia Recreation Club");
+	const community = await createCommunity("Meridian Recreation Club");
 
-	const admin = await registerUser({ communityId: community.id, name: "Meera Iyer", email: DEMO_ADMIN_EMAIL, password: DEMO_PASSWORD });
-	const org1 = await registerUser({ communityId: community.id, name: "David Kim", email: "david.kim@estancia.demo", password: DEMO_PASSWORD });
-	const org2 = await registerUser({ communityId: community.id, name: "Priya Nair", email: "priya.nair@estancia.demo", password: DEMO_PASSWORD });
+	// The demo admin is both the platform Super Admin (account-level flag, no self-service path to get
+	// this elsewhere) AND an active Org Admin of the seed community, so logging in drops them straight
+	// into a fully-run demo tournament instead of an empty platform console.
+	const adminAccount = await createAccount({ name: "Jordan Ellis", email: DEMO_ADMIN_EMAIL, password: DEMO_PASSWORD, isSuperAdmin: true });
+	const admin = await addMembership(adminAccount, community.id, "org_admin", "active");
+	const org1 = await seedMember(community.id, "David Kim", "david.kim@sportcraft.demo", DEMO_PASSWORD, "org_admin");
+	const org2 = await seedMember(community.id, "Priya Nair", "priya.nair@sportcraft.demo", DEMO_PASSWORD, "org_admin");
 
 	const voters: UserRecord[] = [];
 	for (let i = 0; i < 42; i++) {
 		const name = genName(i);
 		const email = genEmail(name, i + 1);
-		voters.push(await registerUser({ communityId: community.id, name, email, password: DEMO_PASSWORD }));
+		voters.push(await seedMember(community.id, name, email, DEMO_PASSWORD));
 	}
 
 	const tournament = await createTournament({
 		communityId: community.id,
-		name: "Estancia Summer Volleyball League 2026",
+		name: "Meridian Summer Volleyball League 2026",
 		maxTeams: 6, teamSize: 6, budgetPoints: 100,
 		setsToWin: 2, pointsPerSet: 25, winBy: 2, playoffTeamCount: 4,
 		createdBy: admin.userid,
 	});
-	await addOrganizer(tournament.id, org1.userid);
-	await addOrganizer(tournament.id, org2.userid);
+	void org1;
+	void org2;
 
 	await openPoll(tournament.id);
 	for (const v of voters) await joinPoll(tournament.id, v.userid);
@@ -111,7 +124,7 @@ async function runSeed(): Promise<void> {
 
 	const captainIdx = [0, 7, 14, 21, 28, 35];
 	const teamMeta = [
-		{ name: "Estancia Smashers", color: 1 },
+		{ name: "Meridian Smashers", color: 1 },
 		{ name: "Net Ninjas", color: 2 },
 		{ name: "Sunset Spikers", color: 3 },
 		{ name: "Block Party", color: 4 },
@@ -147,7 +160,7 @@ async function runSeed(): Promise<void> {
 	}
 
 	await generateRoundRobinSchedule(tournament.id, {
-		venue: "Estancia Community Gym",
+		venue: "Meridian Community Gym",
 		courts: ["Court A", "Court B"],
 		times: ["18:00", "19:15"],
 		startDate: "2026-07-05",

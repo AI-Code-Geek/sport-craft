@@ -5,6 +5,22 @@ round-robin scheduling, live set-by-set scoring, standings, and a playoff bracke
 Cloudflare Workers (OpenNext), **no database — everything lives in a single Cloudflare KV
 namespace** (see `docs/DEVPLAN.md` §3 for the key layout).
 
+## Roles & approval flow
+
+Three roles: **Super Admin** (platform-level, seeded only — no self-service path exists), **Org
+Admin** (runs one org day-to-day: creates/runs its tournaments, manages its members), and **Player**
+(the default role for anyone who registers).
+
+- **Creating an org** is a request/approval flow: anyone submits a "Request an org" form (name, sport,
+  which features to enable) from the login page; it sits `pending` until a Super Admin approves it. On
+  approval the requester becomes that org's founding Org Admin.
+- **Joining an org** (via its invite code) is also request/approval, but reviewed by *that org's* Org
+  Admin instead — an account can hold active/pending memberships in multiple orgs at once, each with
+  its own role, and switches between them with the org picker in the nav.
+- **Features** (poll, scheduler, team creation, positions, auction, live scoring, brackets,
+  notifications) are chosen per org at request time and can be toggled later from Org Settings —
+  disabling one hides it from the nav and admin console for that org.
+
 ## Run it locally
 
 ```bash
@@ -46,9 +62,9 @@ rm -rf .wrangler/state
 
 | Role | Name | Email |
 |---|---|---|
-| Super Admin | Meera Iyer | `meera.success@gmail.com` |
-| Organizer | David Kim | `david.kim@estancia.demo` |
-| Organizer | Priya Nair | `priya.nair@estancia.demo` |
+| Super Admin + Org Admin | Meera Iyer | `meera.success@gmail.com` |
+| Org Admin | David Kim | `david.kim@estancia.demo` |
+| Org Admin | Priya Nair | `priya.nair@estancia.demo` |
 | Captain — Estancia Smashers | Meera Santos | `meera.santos1@estancia.demo` |
 | Captain — Net Ninjas | Riley Wallace | `riley.wallace8@estancia.demo` |
 | Captain — Sunset Spikers | Reese Kim | `reese.kim15@estancia.demo` |

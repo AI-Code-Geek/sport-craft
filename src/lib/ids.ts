@@ -11,6 +11,7 @@ export const genTournamentId = () => "t_" + randomHex(4);
 export const genTeamId = () => "team_" + randomHex(3);
 export const genMatchId = () => "m_" + randomHex(4);
 export const genNotificationId = () => "n_" + randomHex(4);
+export const genOrgRequestId = () => "orgreq_" + randomHex(4);
 
 export function slugify(s: string): string {
 	return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");

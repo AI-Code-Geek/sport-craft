@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { ensureDemoSeed } from "@/lib/seed";
-import { verifyLogin, putUser } from "@/lib/user-store";
+import { verifyLogin, putUser, resolveActiveMembership } from "@/lib/user-store";
 import { publicUser } from "@/lib/types";
 import { signSession, SESSION_COOKIE, SESSION_MAX_SECONDS } from "@/lib/session";
 import { envSecret, isProd } from "@/lib/auth-server";
@@ -37,7 +37,11 @@ export async function POST(req: Request): Promise<Response> {
 	if (!envSecret()) return json({ error: "server_misconfigured" }, 500);
 	const now = Math.floor(Date.now() / 1000);
 	const exp = now + SESSION_MAX_SECONDS;
-	const token = await signSession({ userid: user.userid, communityId: user.communityId, role: user.role, exp }, envSecret());
+	const active = resolveActiveMembership(user);
+	const token = await signSession(
+		{ userid: user.userid, isSuperAdmin: user.isSuperAdmin, communityId: active?.communityId ?? null, role: active?.role ?? null, exp },
+		envSecret(),
+	);
 	const jar = await cookies();
 	jar.set(SESSION_COOKIE, token, { httpOnly: true, secure: isProd(), sameSite: "lax", path: "/", maxAge: exp - now });
 
@@ -45,5 +49,5 @@ export async function POST(req: Request): Promise<Response> {
 	user.lastLoginAt = new Date().toISOString();
 	await putUser(user);
 
-	return json({ user: publicUser(user) }, 200);
+	return json({ user: publicUser(user, active?.communityId) }, 200);
 }

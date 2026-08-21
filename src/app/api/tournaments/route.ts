@@ -1,5 +1,5 @@
 import { readSession } from "@/lib/auth-server";
-import { isSuperAdmin } from "@/lib/authz";
+import { isSuperAdmin, isOrgAdminOf } from "@/lib/authz";
 import { createTournament, listTournamentsByCommunity } from "@/lib/tournament-store";
 import { createNotification } from "@/lib/notification-store";
 import { json } from "@/lib/http";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(): Promise<Response> {
 	const session = await readSession();
 	if (!session) return json({ error: "unauthorized" }, 401);
+	if (!session.communityId) return json({ tournaments: [] });
 	const tournaments = await listTournamentsByCommunity(session.communityId);
 	return json({ tournaments });
 }
@@ -16,7 +17,8 @@ export async function GET(): Promise<Response> {
 export async function POST(req: Request): Promise<Response> {
 	const session = await readSession();
 	if (!session) return json({ error: "unauthorized" }, 401);
-	if (!isSuperAdmin(session)) return json({ error: "forbidden" }, 403);
+	if (!session.communityId) return json({ error: "no_active_org" }, 400);
+	if (!isSuperAdmin(session) && !isOrgAdminOf(session, session.communityId)) return json({ error: "forbidden" }, 403);
 
 	let body: {
 		name?: string; maxTeams?: number; teamSize?: number; budgetPoints?: number;

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { ensureDemoSeed } from "@/lib/seed";
 import { getCommunityByInviteCode } from "@/lib/community-store";
-import { registerUser } from "@/lib/user-store";
+import { joinCommunity, resolveActiveMembership } from "@/lib/user-store";
 import { publicUser } from "@/lib/types";
 import { signSession, SESSION_COOKIE, SESSION_MAX_SECONDS } from "@/lib/session";
 import { envSecret, isProd } from "@/lib/auth-server";
@@ -31,18 +31,24 @@ export async function POST(req: Request): Promise<Response> {
 
 	let user;
 	try {
-		user = await registerUser({ communityId: community.id, name, email, password });
+		user = await joinCommunity({ communityId: community.id, name, email, password });
 	} catch (e) {
-		if (errorMessage(e) === "email_taken") return json({ error: "email_taken" }, 409);
+		const msg = errorMessage(e);
+		if (msg === "email_taken") return json({ error: "email_taken" }, 409);
+		if (msg === "already_member") return json({ error: "already_member" }, 409);
 		return json({ error: "registration_failed" }, 500);
 	}
 
 	if (!envSecret()) return json({ error: "server_misconfigured" }, 500);
 	const now = Math.floor(Date.now() / 1000);
 	const exp = now + SESSION_MAX_SECONDS;
-	const token = await signSession({ userid: user.userid, communityId: user.communityId, role: user.role, exp }, envSecret());
+	const active = resolveActiveMembership(user);
+	const token = await signSession(
+		{ userid: user.userid, isSuperAdmin: user.isSuperAdmin, communityId: active?.communityId ?? null, role: active?.role ?? null, exp },
+		envSecret(),
+	);
 	const jar = await cookies();
 	jar.set(SESSION_COOKIE, token, { httpOnly: true, secure: isProd(), sameSite: "lax", path: "/", maxAge: exp - now });
 
-	return json({ user: publicUser(user) }, 201);
+	return json({ user: publicUser(user, community.id) }, 201);
 }
