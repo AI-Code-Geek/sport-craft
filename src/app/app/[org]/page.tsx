@@ -16,6 +16,7 @@ export default function OrgHomePage() {
 	const [tournament, setTournament] = useState<Tournament | null>(null);
 	const [role, setRole] = useState<{ isSuperAdmin: boolean; isOrgAdmin: boolean; canManage: boolean; captainTeamId: string | null } | null>(null);
 	const [myEntry, setMyEntry] = useState<PollEntryView | null>(null);
+	const [pollFrozen, setPollFrozen] = useState(false);
 	const [myTeam, setMyTeam] = useState<Team | null>(null);
 	const [liveMatch, setLiveMatch] = useState<Match | null>(null);
 
@@ -37,6 +38,7 @@ export default function OrgHomePage() {
 			]);
 			setTournament(t.tournament ?? null);
 			setMyEntry(p.poll?.entries.find((e) => e.userId === data.user!.userid) ?? null);
+			setPollFrozen(p.poll?.frozen ?? false);
 			setMyTeam(teams.teams?.find((tm) => tm.roster.some((r) => r.userId === data.user!.userid)) ?? null);
 			setLiveMatch(sched.matches?.find((m) => m.status === "live") ?? null);
 			setPhase("ready");
@@ -94,7 +96,9 @@ export default function OrgHomePage() {
 				<div>
 					<h1 className="text-xl font-bold">{tournament.name}</h1>
 				</div>
-				<span className="rounded-md bg-ok/15 px-2 py-1 text-xs font-bold text-ok uppercase">{tournament.status.replace(/_/g, " ")}</span>
+				<span className="rounded-md bg-ok/15 px-2 py-1 text-xs font-bold text-ok uppercase">
+					{tournament.status === "poll_open" && pollFrozen ? "poll frozen" : tournament.status.replace(/_/g, " ")}
+				</span>
 			</div>
 
 			<Card title="Tournament progress">
@@ -113,6 +117,10 @@ export default function OrgHomePage() {
 						<div className="flex flex-col gap-3">
 							<p className="text-sm">You&apos;re running this tournament as {role?.isSuperAdmin ? "Super Admin" : "Org Admin"}. Jump into the admin console to advance the next stage.</p>
 							<Link href={`/app/${org}/admin`} className="btn-primary w-fit">Open admin console →</Link>
+						</div>
+					) : tournament.status.startsWith("poll") && pollFrozen && (!myEntry || myEntry.status === "withdrawn") ? (
+						<div className="flex flex-col gap-3">
+							<p className="text-sm">Signups are paused right now — check back soon.</p>
 						</div>
 					) : tournament.status.startsWith("poll") && (!myEntry || myEntry.status === "withdrawn") ? (
 						<div className="flex flex-col gap-3">

@@ -13,12 +13,14 @@ export default function PollPage() {
 	const [userId, setUserId] = useState<string | null>(null);
 	const [entries, setEntries] = useState<EntryRow[]>([]);
 	const [capacity, setCapacity] = useState(0);
+	const [frozen, setFrozen] = useState(false);
 	const [busy, setBusy] = useState(false);
 
 	const load = useCallback(async (tid: string) => {
 		const { data } = await getPoll(tid);
 		setEntries(data.poll?.entries ?? []);
 		setCapacity(data.capacity ?? 0);
+		setFrozen(data.poll?.frozen ?? false);
 	}, []);
 
 	useEffect(() => {
@@ -70,8 +72,12 @@ export default function PollPage() {
 				<Card title="Your status">
 					{!mine || mine.status === "withdrawn" ? (
 						<div className="flex flex-col gap-2">
-							<p className="text-sm text-muted">You haven&apos;t joined this poll yet.</p>
-							<button disabled={busy} onClick={join} className="btn-primary w-fit">Join the poll →</button>
+							<p className="text-sm text-muted">
+								{frozen ? "Signups are paused right now — check back soon." : "You haven't joined this poll yet."}
+							</p>
+							{frozen ? null : (
+								<button disabled={busy} onClick={join} className="btn-primary w-fit">Join the poll →</button>
+							)}
 						</div>
 					) : (
 						<div className="flex flex-col gap-2">
