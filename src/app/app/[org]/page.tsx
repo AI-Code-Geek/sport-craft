@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { fetchMe, getTournament, getPoll, getTeams, getSchedule, getBracket, listTournaments, getOrganizers } from "@/lib/api-client";
 import type { PollEntryView } from "@/lib/api-client";
 import { Card, LifecycleStepper, TeamChip } from "@/components/ui";
+import { LiveChannel } from "@/components/LiveChannel";
 import { tournamentStatusLabel } from "@/lib/format";
 import type { Tournament, Team, Match } from "@/lib/types";
 
@@ -220,6 +221,8 @@ export default function OrgHomePage() {
 				<QuickLink href={`/app/${org}/bracket`} icon="🏆" label="Bracket" />
 				<QuickLink href={`/app/${org}/teams`} icon="👥" label="All Teams" />
 			</div>
+
+			<LiveChannel />
 
 			<div className="grid gap-4 md:grid-cols-2">
 				<Card title="Tournaments">
