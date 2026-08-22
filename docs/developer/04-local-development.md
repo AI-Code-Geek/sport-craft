@@ -64,6 +64,7 @@ npm run dev        # re-seeds on the next request
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start the dev server (port 3100). |
+| `./start.sh` / `start.bat` | Same, but backgrounds the server and waits for it to respond; add `load-data` to also seed a second "SportCraft Club" test org. Stop with `./stop.sh` / `stop.bat`. See [`docs/user/05-running-the-demo.md`](../user/05-running-the-demo.md). |
 | `npx tsc --noEmit` | Typecheck only, no build output — fast, run this first when debugging a type error. |
 | `npm run build` | Production Next.js build — this is also what the Cloudflare pipeline runs (see [`05-deployment.md`](./05-deployment.md)). |
 | `npm run check` | `next build && tsc` — the full local pre-push check. |

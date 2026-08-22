@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { fetchMe, getTournament, getPoll, getTeams, getSchedule } from "@/lib/api-client";
 import type { PollEntryView } from "@/lib/api-client";
 import { Card, LifecycleStepper, TeamChip } from "@/components/ui";
+import { tournamentStatusLabel } from "@/lib/format";
 import type { Tournament, Team, Match } from "@/lib/types";
 
 type Phase = "loading" | "no-tournament" | "ready";
@@ -18,6 +19,7 @@ export default function OrgHomePage() {
 	const [myEntry, setMyEntry] = useState<PollEntryView | null>(null);
 	const [pollFrozen, setPollFrozen] = useState(false);
 	const [myTeam, setMyTeam] = useState<Team | null>(null);
+	const [teams, setTeams] = useState<Team[]>([]);
 	const [liveMatch, setLiveMatch] = useState<Match | null>(null);
 
 	useEffect(() => {
@@ -39,6 +41,7 @@ export default function OrgHomePage() {
 			setTournament(t.tournament ?? null);
 			setMyEntry(p.poll?.entries.find((e) => e.userId === data.user!.userid) ?? null);
 			setPollFrozen(p.poll?.frozen ?? false);
+			setTeams(teams.teams ?? []);
 			setMyTeam(teams.teams?.find((tm) => tm.roster.some((r) => r.userId === data.user!.userid)) ?? null);
 			setLiveMatch(sched.matches?.find((m) => m.status === "live") ?? null);
 			setPhase("ready");
@@ -97,17 +100,30 @@ export default function OrgHomePage() {
 					<h1 className="text-xl font-bold">{tournament.name}</h1>
 				</div>
 				<span className="rounded-md bg-ok/15 px-2 py-1 text-xs font-bold text-ok uppercase">
-					{tournament.status === "poll_open" && pollFrozen ? "poll frozen" : tournament.status.replace(/_/g, " ")}
+					{tournamentStatusLabel(tournament.status, pollFrozen)}
 				</span>
 			</div>
 
 			<Card title="Tournament progress">
-				<LifecycleStepper status={tournament.status} />
+				<LifecycleStepper status={tournament.status} pollFrozen={pollFrozen} />
 			</Card>
 
 			{tournament.guidelines ? (
 				<Card title="Rules & guidelines">
 					<p className="whitespace-pre-wrap text-sm">{tournament.guidelines}</p>
+				</Card>
+			) : null}
+
+			{liveMatch ? (
+				<Card>
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<p className="text-sm">
+							<span className="mr-1 inline-block h-2 w-2 rounded-full bg-bad align-middle live-pulse" /> Live now:{" "}
+							<strong>{teams.find((t) => t.id === liveMatch.teamAId)?.name ?? "TBD"}</strong> vs{" "}
+							<strong>{teams.find((t) => t.id === liveMatch.teamBId)?.name ?? "TBD"}</strong>
+						</p>
+						<Link href={`/app/${org}/matches/${liveMatch.id}`} className="btn-danger w-fit">Watch live →</Link>
+					</div>
 				</Card>
 			) : null}
 

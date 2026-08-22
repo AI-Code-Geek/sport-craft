@@ -29,6 +29,8 @@ export async function middleware(req: NextRequest) {
 		// Submitting an org-creation request is public — the requester has no account/session yet.
 		// GET (Super Admin review) and the [id] approve/reject route still require a session.
 		if (req.nextUrl.pathname === "/api/organizations/requests" && req.method === "POST") return NextResponse.next();
+		// Local-dev seed helper (start.sh/start.bat) has no session to call it with — gated off in production instead.
+		if (req.nextUrl.pathname === "/api/dev/seed-sportcraft-club" && process.env.NODE_ENV !== "production") return NextResponse.next();
 		const token = req.cookies.get(SESSION_COOKIE)?.value;
 		const session = await verifySession(token, resolveSecret(process.env.SECRET));
 		if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

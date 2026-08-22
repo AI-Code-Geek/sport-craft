@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchMe, getTournament } from "@/lib/api-client";
+import { fetchMe, getTournament, getPoll } from "@/lib/api-client";
 import { Card, LifecycleStepper } from "@/components/ui";
 import type { Tournament, FeatureKey } from "@/lib/types";
 
@@ -25,6 +25,7 @@ const ORG_ADMIN_TOOLS: [string, string, string, string, FeatureKey | null][] = [
 export default function AdminHomePage() {
 	const { org } = useParams<{ org: string }>();
 	const [tournament, setTournament] = useState<Tournament | null>(null);
+	const [pollFrozen, setPollFrozen] = useState(false);
 	const [canManage, setCanManage] = useState(false);
 	const [isOrgAdmin, setIsOrgAdmin] = useState(false);
 	const [isPlatformSuperAdmin, setIsPlatformSuperAdmin] = useState(false);
@@ -39,8 +40,9 @@ export default function AdminHomePage() {
 			setHasOrg(!!data.communityId);
 			setFeatures(data.features ?? null);
 			if (!data.tournamentId) return;
-			const { data: t } = await getTournament(data.tournamentId);
+			const [{ data: t }, { data: p }] = await Promise.all([getTournament(data.tournamentId), getPoll(data.tournamentId)]);
 			setTournament(t.tournament ?? null);
+			setPollFrozen(p.poll?.frozen ?? false);
 		});
 	}, []);
 
@@ -62,7 +64,7 @@ export default function AdminHomePage() {
 				</Card>
 			) : tournament ? (
 				<Card title="Tournament progress">
-					<LifecycleStepper status={tournament.status} />
+					<LifecycleStepper status={tournament.status} pollFrozen={pollFrozen} />
 				</Card>
 			) : (
 				<Card>
