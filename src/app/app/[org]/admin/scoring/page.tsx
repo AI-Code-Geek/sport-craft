@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { fetchMe, getSchedule, getTeams, scoreAction, getMatch } from "@/lib/api-client";
 import type { TeamView } from "@/lib/api-client";
 import { Card, TeamChip } from "@/components/ui";
@@ -8,6 +9,8 @@ import { fmtDateTime } from "@/lib/format";
 import type { Match } from "@/lib/types";
 
 export default function AdminScoringPage() {
+	const searchParams = useSearchParams();
+	const requestedMatchId = searchParams.get("match");
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [scoreable, setScoreable] = useState<Match[]>([]);
 	const [teams, setTeams] = useState<TeamView[]>([]);
@@ -29,9 +32,11 @@ export default function AdminScoringPage() {
 			list.sort((a, b) => (a.status === "live" ? -1 : 1) - (b.status === "live" ? -1 : 1));
 			setScoreable(list);
 			setTeams(t.teams ?? []);
-			if (list[0]) {
-				setMatchId(list[0].id);
-				setMatch(list[0]);
+			const requested = requestedMatchId ? list.find((m) => m.id === requestedMatchId) : null;
+			const initial = requested ?? list[0];
+			if (initial) {
+				setMatchId(initial.id);
+				setMatch(initial);
 			}
 		});
 	}, []);

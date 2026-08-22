@@ -50,12 +50,17 @@ nobody bid — so the auction never stalls), **skip** a nominee, or **pause/resu
 
 Pick venue(s), court(s), time slot(s), a start date, and days between rounds, then **generate**. Builds
 a full round-robin with no team double-booked in a slot. You can regenerate before publishing if
-something looks off.
+something looks off. Each row's **Action** column jumps straight into Live Scoring for that match —
+"Start match" for a scheduled one, "Continue scoring" once it's live.
+
+A match's scheduled time is display-only — nothing starts it automatically. It stays `scheduled`
+until you actually add its first point (whether early, late, or exactly on time makes no difference).
 
 ### 7. Live scoring — `/app/admin/scoring`
 
-Pick a match, enter points set-by-set as it happens. Standings update automatically the moment a match
-completes — no separate step.
+Pick a match (or arrive already on one via the Schedule page's Action column), enter points set-by-set
+as it happens — the first point is what moves a match from `scheduled` to `live`. Standings update
+automatically the moment a match completes — no separate step.
 
 ### 8. Playoffs — `/app/admin/playoffs`
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { fetchMe, getSchedule, generateSchedule, getTeams } from "@/lib/api-client";
 import type { TeamView } from "@/lib/api-client";
 import { Card, TeamChip, StatusBadge } from "@/components/ui";
@@ -8,6 +10,7 @@ import { fmtDateTime } from "@/lib/format";
 import type { Match } from "@/lib/types";
 
 export default function AdminSchedulePage() {
+	const { org } = useParams<{ org: string }>();
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [matches, setMatches] = useState<Match[]>([]);
 	const [teams, setTeams] = useState<TeamView[]>([]);
@@ -72,7 +75,7 @@ export default function AdminSchedulePage() {
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
 							<thead className="text-left text-xs text-muted">
-								<tr><th className="pb-2 pr-2">#</th><th className="pb-2 pr-2">Date &amp; time</th><th className="pb-2 pr-2">Matchup</th><th className="pb-2 pr-2">Court</th><th className="pb-2">Status</th></tr>
+								<tr><th className="pb-2 pr-2">#</th><th className="pb-2 pr-2">Date &amp; time</th><th className="pb-2 pr-2">Matchup</th><th className="pb-2 pr-2">Court</th><th className="pb-2 pr-2">Status</th><th className="pb-2 text-right">Action</th></tr>
 							</thead>
 							<tbody>
 								{group.map((m, i) => {
@@ -90,11 +93,18 @@ export default function AdminSchedulePage() {
 												</div>
 											</td>
 											<td className="py-1.5 pr-2 text-xs text-muted">{m.court}</td>
-											<td className="py-1.5"><StatusBadge status={m.status} /></td>
+											<td className="py-1.5 pr-2"><StatusBadge status={m.status} /></td>
+											<td className="py-1.5 text-right">
+												{m.status === "scheduled" || m.status === "live" ? (
+													<Link href={`/app/${org}/admin/scoring?match=${m.id}`} className="btn-outline">
+														{m.status === "live" ? "Continue scoring" : "Start match"}
+													</Link>
+												) : null}
+											</td>
 										</tr>
 									);
 								})}
-								{group.length === 0 ? <tr><td colSpan={5} className="py-6 text-center text-muted">No schedule yet — generate one on the left.</td></tr> : null}
+								{group.length === 0 ? <tr><td colSpan={6} className="py-6 text-center text-muted">No schedule yet — generate one on the left.</td></tr> : null}
 							</tbody>
 						</table>
 					</div>
