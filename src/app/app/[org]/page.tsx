@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchMe, getTournament, getPoll, getTeams, getSchedule } from "@/lib/api-client";
+import { fetchMe, getTournament, getPoll, getTeams, getSchedule, getBracket, listTournaments, getOrganizers } from "@/lib/api-client";
 import type { PollEntryView } from "@/lib/api-client";
 import { Card, LifecycleStepper, TeamChip } from "@/components/ui";
 import { tournamentStatusLabel } from "@/lib/format";
@@ -21,6 +21,9 @@ export default function OrgHomePage() {
 	const [myTeam, setMyTeam] = useState<Team | null>(null);
 	const [teams, setTeams] = useState<Team[]>([]);
 	const [liveMatch, setLiveMatch] = useState<Match | null>(null);
+	const [champion, setChampion] = useState<Team | null>(null);
+	const [recentTournaments, setRecentTournaments] = useState<Tournament[]>([]);
+	const [organizers, setOrganizers] = useState<{ userid: string; name: string }[]>([]);
 
 	useEffect(() => {
 		fetchMe().then(async ({ data }) => {
@@ -32,18 +35,30 @@ export default function OrgHomePage() {
 			}
 			setRole(data.roleContext ?? null);
 
-			const [{ data: t }, { data: p }, { data: teams }, { data: sched }] = await Promise.all([
+			const [{ data: t }, { data: p }, { data: teams }, { data: sched }, { data: br }, { data: allT }, { data: org }] = await Promise.all([
 				getTournament(data.tournamentId),
 				getPoll(data.tournamentId),
 				getTeams(data.tournamentId),
 				getSchedule(data.tournamentId),
+				getBracket(data.tournamentId),
+				listTournaments(),
+				getOrganizers(),
 			]);
+			setRecentTournaments((allT.tournaments ?? []).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5));
+			setOrganizers(org.organizers ?? []);
 			setTournament(t.tournament ?? null);
 			setMyEntry(p.poll?.entries.find((e) => e.userId === data.user!.userid) ?? null);
 			setPollFrozen(p.poll?.frozen ?? false);
 			setTeams(teams.teams ?? []);
 			setMyTeam(teams.teams?.find((tm) => tm.roster.some((r) => r.userId === data.user!.userid)) ?? null);
 			setLiveMatch(sched.matches?.find((m) => m.status === "live") ?? null);
+			if (t.tournament?.status === "completed" && br.bracket) {
+				const finalRound = br.bracket.rounds[br.bracket.rounds.length - 1];
+				const finalMatchId = finalRound?.matches[0]?.matchId;
+				const finalMatch = finalMatchId ? sched.matches?.find((m) => m.id === finalMatchId) : null;
+				const championId = finalMatch?.winnerTeamId ?? null;
+				setChampion(championId ? teams.teams?.find((tm) => tm.id === championId) ?? null : null);
+			}
 			setPhase("ready");
 		});
 	}, []);
@@ -114,6 +129,16 @@ export default function OrgHomePage() {
 				</Card>
 			) : null}
 
+			{champion ? (
+				<Card>
+					<div className="flex flex-col items-center gap-2 py-4 text-center">
+						<div className="text-3xl">🏆</div>
+						<div className="text-xs font-semibold tracking-wide text-muted uppercase">Tournament complete — Champion</div>
+						<TeamChip id={champion.id} name={champion.name} color={champion.color} link={false} />
+					</div>
+				</Card>
+			) : null}
+
 			{liveMatch ? (
 				<Card>
 					<div className="flex flex-wrap items-center justify-between gap-3">
@@ -157,6 +182,11 @@ export default function OrgHomePage() {
 							</p>
 							<Link href={`/app/${org}/matches/${liveMatch.id}`} className="btn-danger w-fit">Watch live →</Link>
 						</div>
+					) : tournament.status === "completed" ? (
+						<div className="flex flex-col gap-3">
+							<p className="text-sm">This tournament is complete — check out the final bracket and standings.</p>
+							<Link href={`/app/${org}/bracket`} className="btn-secondary w-fit">View bracket →</Link>
+						</div>
 					) : (
 						<div className="flex flex-col gap-3">
 							<p className="text-sm">Check the schedule for your team&apos;s next match.</p>
@@ -189,6 +219,51 @@ export default function OrgHomePage() {
 				<QuickLink href={`/app/${org}/standings`} icon="📊" label="Standings" />
 				<QuickLink href={`/app/${org}/bracket`} icon="🏆" label="Bracket" />
 				<QuickLink href={`/app/${org}/teams`} icon="👥" label="All Teams" />
+			</div>
+
+			<div className="grid gap-4 md:grid-cols-2">
+				<Card title="Tournaments">
+					{recentTournaments.length === 0 ? (
+						<p className="text-sm text-muted">No tournaments yet.</p>
+					) : (
+						<div className="flex flex-col gap-2">
+							{recentTournaments.map((rt) => {
+								const isCurrent = rt.id === tournament.id;
+								const content = (
+									<div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+										<span className="truncate">{rt.name}</span>
+										<span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${rt.status === "completed" ? "bg-ok/15 text-ok" : "bg-brand/15 text-brand"}`}>
+											{isCurrent ? "current" : rt.status.replace(/_/g, " ")}
+										</span>
+									</div>
+								);
+								return rt.status === "completed" && !isCurrent ? (
+									<Link key={rt.id} href={`/app/${org}/archive/${rt.id}`} className="hover:opacity-80">{content}</Link>
+								) : (
+									<div key={rt.id}>{content}</div>
+								);
+							})}
+							<Link href={`/app/${org}/archive`} className="mt-1 text-xs text-brand">See full archive →</Link>
+						</div>
+					)}
+				</Card>
+
+				<Card title="Organizers">
+					{organizers.length === 0 ? (
+						<p className="text-sm text-muted">No organizers listed.</p>
+					) : (
+						<div className="flex flex-col gap-2">
+							{organizers.map((o) => (
+								<div key={o.userid} className="flex items-center gap-2 text-sm">
+									<span className="flex h-7 w-7 items-center justify-center rounded-full border border-brand/30 bg-brand/10 text-xs font-semibold text-brand">
+										{o.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?"}
+									</span>
+									{o.name}
+								</div>
+							))}
+						</div>
+					)}
+				</Card>
 			</div>
 
 		</div>
