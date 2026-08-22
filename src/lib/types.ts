@@ -346,3 +346,14 @@ export interface AppNotification {
 	audience: NotificationAudience;
 	createdAt: string;
 }
+
+// ── Live channel (public org-wide chat) ──────────────────────────────────────
+
+export interface ChatMessage {
+	id: string;
+	communityId: string;
+	userId: string;
+	name: string;
+	text: string;
+	createdAt: string;
+}

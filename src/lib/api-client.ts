@@ -1,7 +1,7 @@
 /** Typed fetch wrappers for every /api/* route. Client-safe (no server-only imports). */
 import type {
 	PublicUser, Tournament, Poll, PollEntry, Team, RosterEntry, PositionsState, AuctionState,
-	AuctionLogEntry, Match, StandingsRow, Bracket, AppNotification, Community, SportType, FeatureKey,
+	AuctionLogEntry, Match, StandingsRow, Bracket, AppNotification, Community, SportType, FeatureKey, ChatMessage,
 } from "./types";
 
 async function call<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
@@ -196,3 +196,7 @@ export const updateCommunityUser = (userId: string, patchBody: { role?: "org_adm
 
 /** Any active member — not just admins — can see who runs their org. */
 export const getOrganizers = () => get<{ organizers: { userid: string; name: string }[] }>("/api/community/organizers");
+
+// ── Live channel (public, org-wide chat) ──────────────────────────────────────
+export const getChat = () => get<{ messages: ChatMessage[] }>("/api/community/chat");
+export const sendChatMessage = (text: string) => post<{ message: ChatMessage }>("/api/community/chat", { text });
