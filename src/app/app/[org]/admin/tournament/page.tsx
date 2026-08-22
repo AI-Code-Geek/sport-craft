@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { fetchMe, getTournament, updateTournament, deleteTournament, exportTournamentUrl } from "@/lib/api-client";
+import { fetchMe, getTournament, getPoll, updateTournament, deleteTournament, exportTournamentUrl } from "@/lib/api-client";
 import { Card, LifecycleStepper } from "@/components/ui";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDateTime, tournamentStatusLabel } from "@/lib/format";
 import type { Tournament } from "@/lib/types";
 
 export default function TournamentSettingsPage() {
@@ -12,6 +12,7 @@ export default function TournamentSettingsPage() {
 	const router = useRouter();
 	const [tournamentId, setTournamentId] = useState<string | null>(null);
 	const [t, setT] = useState<Tournament | null>(null);
+	const [pollFrozen, setPollFrozen] = useState(false);
 	const [saved, setSaved] = useState(false);
 	const [confirmName, setConfirmName] = useState("");
 	const [deleting, setDeleting] = useState(false);
@@ -22,8 +23,9 @@ export default function TournamentSettingsPage() {
 		fetchMe().then(async ({ data }) => {
 			if (!data.tournamentId) return;
 			setTournamentId(data.tournamentId);
-			const { data: res } = await getTournament(data.tournamentId);
+			const [{ data: res }, { data: p }] = await Promise.all([getTournament(data.tournamentId), getPoll(data.tournamentId)]);
 			setT(res.tournament ?? null);
+			setPollFrozen(p.poll?.frozen ?? false);
 		});
 	}, []);
 
@@ -112,11 +114,13 @@ export default function TournamentSettingsPage() {
 				</Card>
 				<Card title="Status">
 					<div className="mb-2">
-						<span className="rounded-md bg-ok/15 px-2 py-1 text-xs font-bold uppercase text-ok">{t.status.replace(/_/g, " ")}</span>
+						<span className="rounded-md bg-ok/15 px-2 py-1 text-xs font-bold uppercase text-ok">
+							{tournamentStatusLabel(t.status, pollFrozen)}
+						</span>
 					</div>
 					{t.pollOpenedAt ? <div className="mb-1 text-xs text-muted">Poll opened: {fmtDateTime(t.pollOpenedAt)}</div> : null}
 					{t.pollClosedAt ? <div className="mb-3 text-xs text-muted">Poll closed: {fmtDateTime(t.pollClosedAt)}</div> : null}
-					<LifecycleStepper status={t.status} />
+					<LifecycleStepper status={t.status} pollFrozen={pollFrozen} />
 					<div className="mt-3 border-t border-border pt-3">
 						<button className="btn-secondary w-fit" disabled={exporting} onClick={exportJson}>
 							{exporting ? "Exporting…" : "Export as JSON →"}

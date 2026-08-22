@@ -62,25 +62,26 @@ const STAGES: { key: TournamentStatus[]; label: string; sub: string }[] = [
 	{ key: ["schedule_published", "in_progress"], label: "Group stage", sub: "Play & score" },
 	{ key: ["playoffs", "completed"], label: "Playoffs", sub: "Bracket" },
 ];
-export function LifecycleStepper({ status }: { status: TournamentStatus }) {
+export function LifecycleStepper({ status, pollFrozen = false }: { status: TournamentStatus; pollFrozen?: boolean }) {
 	const currentIdx = STAGES.findIndex((s) => s.key.includes(status));
 	return (
 		<div className="flex flex-wrap gap-2">
 			{STAGES.map((s, i) => {
 				const done = i < currentIdx;
 				const current = i === currentIdx;
+				const frozen = current && s.label === "Poll" && status === "poll_open" && pollFrozen;
 				return (
 					<div
 						key={s.label}
 						className={`min-w-[130px] flex-1 rounded-xl border px-3 py-2.5 text-sm ${
-							done ? "border-ok/40 bg-ok/8" : current ? "border-brand bg-brand/8 ring-2 ring-brand/15" : "border-border bg-surface-2"
+							frozen ? "border-warn bg-warn/8 ring-2 ring-warn/15" : done ? "border-ok/40 bg-ok/8" : current ? "border-brand bg-brand/8 ring-2 ring-brand/15" : "border-border bg-surface-2"
 						}`}
 					>
 						<div className="font-semibold">
-							{done ? <span className="text-ok">✓ </span> : current ? <span className="text-brand">▶ </span> : null}
+							{done ? <span className="text-ok">✓ </span> : frozen ? <span className="text-warn">⏸ </span> : current ? <span className="text-brand">▶ </span> : null}
 							{s.label}
 						</div>
-						<div className="text-xs text-muted">{s.sub}</div>
+						<div className="text-xs text-muted">{frozen ? "Signups paused" : s.sub}</div>
 					</div>
 				);
 			})}
