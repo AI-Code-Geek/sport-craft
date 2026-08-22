@@ -36,7 +36,10 @@ export default function HelpPage() {
 					<p className="font-semibold">Poll → Captains → Positions → Auction → Schedule → Live scoring → Standings / Playoffs</p>
 					<p className="text-muted">
 						<strong>Home</strong> always shows a "your next action" card for wherever things currently stand —
-						vote in the poll, check your waitlist spot, watch a live match, or just see the schedule.
+						vote in the poll, check your waitlist spot, watch a live match, or just see the schedule — plus a
+						champion banner once playoffs finish, who your org's <strong>Organizers</strong> are, a
+						<strong> Tournaments</strong> card linking into past seasons, and the org-wide <strong>Live
+						channel</strong>.
 					</p>
 				</div>
 			</Card>
@@ -66,6 +69,14 @@ export default function HelpPage() {
 						Recomputes automatically the moment a match finishes. Ties break in order: league points
 						(the Org Admin sets how many a win is worth — 2 by default) → set ratio → head-to-head →
 						point differential. The bracket shows up here once the Org Admin generates it from standings.
+					</HelpItem>
+					<HelpItem title="Archive">
+						Every completed tournament your org has run, newest first — click into one for its final
+						standings, full playoff bracket, and champion.
+					</HelpItem>
+					<HelpItem title="Live channel">
+						A public chat on the home page — any active member can read or post, shared across the whole
+						org (not scoped to one tournament or team).
 					</HelpItem>
 					<HelpItem title="Notifications">
 						The bell icon shows updates for the active tournament — poll opened, captains picked, auction

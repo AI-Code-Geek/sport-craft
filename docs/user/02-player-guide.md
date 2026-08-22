@@ -9,7 +9,18 @@ can do.
 Shows the org's current tournament and a **"your next action"** card that changes based on where
 things stand: vote in the poll if it's open, check your waitlist status, jump to a live match, or
 just see the schedule. If your org has more than one tournament, this is always the *most recently
-created* one.
+created* one. Once a tournament's playoffs finish, this becomes a **"Tournament complete — Champion"**
+banner instead.
+
+Further down: a **Tournaments** card (your org's 5 most recent, the current one tagged, completed ones
+linking into the archive below), an **Organizers** card (who your org's Org Admins are), and the
+**Live channel** — a public chat any active member can read or post in, shared across the whole org
+(not scoped to one tournament or team).
+
+## Archive (`/app/archive`)
+
+Every completed tournament your org has run, newest first. Click into one for its final standings,
+full playoff bracket, and champion — kept for reference even after a new season starts.
 
 ## Poll (`/app/poll`)
 
