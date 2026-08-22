@@ -119,7 +119,7 @@ export function Nav() {
 				{currentOrgName ? (
 					<span className="flex min-w-0 shrink items-center gap-2 text-sm">
 						<span className="text-border">/</span>
-						<span className="truncate font-medium text-muted" title={currentOrgName}>{currentOrgName}</span>
+						<span className="block max-w-[9rem] truncate font-medium text-muted sm:max-w-[14rem]" title={currentOrgName}>{currentOrgName}</span>
 					</span>
 				) : null}
 				<div className="hidden gap-4 md:flex">{links}</div>

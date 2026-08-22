@@ -193,3 +193,6 @@ export const updateCommunitySettings = (patchBody: { name?: string; sport?: Spor
 export const getCommunityUsers = () => get<{ members: PublicUser[]; pending: PublicUser[] }>("/api/community/users");
 export const updateCommunityUser = (userId: string, patchBody: { role?: "org_admin" | "player"; suspended?: boolean; decision?: "approve" | "reject" }) =>
 	patch<{ user: PublicUser }>("/api/community/users", { userId, ...patchBody });
+
+/** Any active member — not just admins — can see who runs their org. */
+export const getOrganizers = () => get<{ organizers: { userid: string; name: string }[] }>("/api/community/organizers");

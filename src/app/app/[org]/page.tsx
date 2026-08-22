@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchMe, getTournament, getPoll, getTeams, getSchedule, getBracket } from "@/lib/api-client";
+import { fetchMe, getTournament, getPoll, getTeams, getSchedule, getBracket, listTournaments, getOrganizers } from "@/lib/api-client";
 import type { PollEntryView } from "@/lib/api-client";
 import { Card, LifecycleStepper, TeamChip } from "@/components/ui";
 import { tournamentStatusLabel } from "@/lib/format";
@@ -22,6 +22,8 @@ export default function OrgHomePage() {
 	const [teams, setTeams] = useState<Team[]>([]);
 	const [liveMatch, setLiveMatch] = useState<Match | null>(null);
 	const [champion, setChampion] = useState<Team | null>(null);
+	const [recentTournaments, setRecentTournaments] = useState<Tournament[]>([]);
+	const [organizers, setOrganizers] = useState<{ userid: string; name: string }[]>([]);
 
 	useEffect(() => {
 		fetchMe().then(async ({ data }) => {
@@ -33,13 +35,17 @@ export default function OrgHomePage() {
 			}
 			setRole(data.roleContext ?? null);
 
-			const [{ data: t }, { data: p }, { data: teams }, { data: sched }, { data: br }] = await Promise.all([
+			const [{ data: t }, { data: p }, { data: teams }, { data: sched }, { data: br }, { data: allT }, { data: org }] = await Promise.all([
 				getTournament(data.tournamentId),
 				getPoll(data.tournamentId),
 				getTeams(data.tournamentId),
 				getSchedule(data.tournamentId),
 				getBracket(data.tournamentId),
+				listTournaments(),
+				getOrganizers(),
 			]);
+			setRecentTournaments((allT.tournaments ?? []).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5));
+			setOrganizers(org.organizers ?? []);
 			setTournament(t.tournament ?? null);
 			setMyEntry(p.poll?.entries.find((e) => e.userId === data.user!.userid) ?? null);
 			setPollFrozen(p.poll?.frozen ?? false);
@@ -213,6 +219,51 @@ export default function OrgHomePage() {
 				<QuickLink href={`/app/${org}/standings`} icon="📊" label="Standings" />
 				<QuickLink href={`/app/${org}/bracket`} icon="🏆" label="Bracket" />
 				<QuickLink href={`/app/${org}/teams`} icon="👥" label="All Teams" />
+			</div>
+
+			<div className="grid gap-4 md:grid-cols-2">
+				<Card title="Tournaments">
+					{recentTournaments.length === 0 ? (
+						<p className="text-sm text-muted">No tournaments yet.</p>
+					) : (
+						<div className="flex flex-col gap-2">
+							{recentTournaments.map((rt) => {
+								const isCurrent = rt.id === tournament.id;
+								const content = (
+									<div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+										<span className="truncate">{rt.name}</span>
+										<span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${rt.status === "completed" ? "bg-ok/15 text-ok" : "bg-brand/15 text-brand"}`}>
+											{isCurrent ? "current" : rt.status.replace(/_/g, " ")}
+										</span>
+									</div>
+								);
+								return rt.status === "completed" && !isCurrent ? (
+									<Link key={rt.id} href={`/app/${org}/archive/${rt.id}`} className="hover:opacity-80">{content}</Link>
+								) : (
+									<div key={rt.id}>{content}</div>
+								);
+							})}
+							<Link href={`/app/${org}/archive`} className="mt-1 text-xs text-brand">See full archive →</Link>
+						</div>
+					)}
+				</Card>
+
+				<Card title="Organizers">
+					{organizers.length === 0 ? (
+						<p className="text-sm text-muted">No organizers listed.</p>
+					) : (
+						<div className="flex flex-col gap-2">
+							{organizers.map((o) => (
+								<div key={o.userid} className="flex items-center gap-2 text-sm">
+									<span className="flex h-7 w-7 items-center justify-center rounded-full border border-brand/30 bg-brand/10 text-xs font-semibold text-brand">
+										{o.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?"}
+									</span>
+									{o.name}
+								</div>
+							))}
+						</div>
+					)}
+				</Card>
 			</div>
 
 		</div>
