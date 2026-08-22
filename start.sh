@@ -9,12 +9,15 @@
 #   ./start.sh captains       ... + pick captains, name teams
 #   ./start.sh positions      ... + categorize the remaining players
 #   ./start.sh auction        ... + run the position auction to completion
-#   ./start.sh schedule       ... + generate the round-robin schedule
-#   ./start.sh live           ... + play some matches, leave one live
+#   ./start.sh schedule       ... + generate the schedule, start one match live for real scoring
+#   ./start.sh score          ... + fill in results for some of the other matches
+#   ./start.sh live           ... + play out every remaining match
 #   ./start.sh playoffs       ... + finish the group stage, generate the bracket
 #
 # Each stage picks up from wherever SportCraft Club last stopped — you can call a later stage on a
-# fresh server to fast-forward, or an earlier/already-reached one as a no-op. Stop with ./stop.sh.
+# fresh server to fast-forward, or an earlier/already-reached one as a no-op. Add `reset` (in any
+# position) to drop SportCraft Club's tournament first and start that stage from scratch — the org and
+# its 38 accounts stay put, only the tournament/poll/teams/matches/bracket get wiped. Stop with ./stop.sh.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -22,9 +25,15 @@ PORT=3100
 PID_FILE=.dev-server.pid
 LOG_FILE=.dev-server.log
 STAGE=""
+RESET=false
 for arg in "$@"; do
-	[ "$arg" = "load-data" ] && STAGE="users" && continue
-	STAGE="$arg"
+	if [ "$arg" = "reset" ]; then
+		RESET=true
+	elif [ "$arg" = "load-data" ]; then
+		STAGE="users"
+	else
+		STAGE="$arg"
+	fi
 done
 
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
@@ -52,10 +61,11 @@ if [ "$up" != true ]; then
 fi
 echo "Dev server is up at http://localhost:$PORT (pid $(cat "$PID_FILE"))"
 
-if [ -n "$STAGE" ]; then
-	echo "Seeding SportCraft Club test org up to stage '$STAGE'..."
+if [ -n "$STAGE" ] || [ "$RESET" = true ]; then
+	[ -z "$STAGE" ] && STAGE="users"
+	echo "Seeding SportCraft Club test org up to stage '$STAGE'$([ "$RESET" = true ] && echo " (reset first)")..."
 	RESPONSE=$(curl -sf -X POST "http://localhost:$PORT/api/dev/seed-sportcraft-club" \
-		-H "Content-Type: application/json" -d "{\"stage\":\"$STAGE\"}")
+		-H "Content-Type: application/json" -d "{\"stage\":\"$STAGE\",\"reset\":$RESET}")
 	echo "$RESPONSE"
 	echo ""
 	echo "SportCraft Club is ready. Log in at http://localhost:$PORT/ with:"

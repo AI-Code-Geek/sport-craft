@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request): Promise<Response> {
 	if (isProd()) return json({ error: "not_found" }, 404);
 
-	let body: { stage?: string } = {};
+	let body: { stage?: string; reset?: boolean } = {};
 	try {
 		body = (await req.json()) as typeof body;
 	} catch {
@@ -20,7 +20,7 @@ export async function POST(req: Request): Promise<Response> {
 	}
 
 	try {
-		const result = await ensureSportCraftClubSeed(body.stage ?? "users");
+		const result = await ensureSportCraftClubSeed(body.stage ?? "users", body.reset === true);
 		return json(result);
 	} catch (e) {
 		return json({ error: errorMessage(e) }, 400);

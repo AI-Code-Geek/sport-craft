@@ -48,14 +48,19 @@ internally consistent (same engine the Meridian seed uses, just resumable):
 | `captains` | 6 captains picked, teams named. |
 | `positions` | Remaining players categorized. |
 | `auction` | Position auction run to completion — every roster filled. |
-| `schedule` | Round-robin schedule generated. |
-| `live` | A few matches played, one left live. |
+| `schedule` | Round-robin schedule generated, one match started live through the real point-by-point scoring path — log in as an Org Admin and keep adding points to it on the Live Scoring page. |
+| `score` | A batch of the *other* matches filled in with results (so standings mean something), without touching the one already live. |
+| `live` | Every remaining match played out, tournament in progress. |
 | `playoffs` | Group stage finished, bracket generated. |
 
 Calling a **later** stage than SportCraft Club has reached fast-forwards through everything in
 between; calling the **same or an earlier** one than it's already at is a no-op — so `./start.sh live`
 on a fresh server runs the whole pipeline in one shot, and running it again just reports back the
 stage already reached.
+
+Add `reset` (either order — `./start.sh vote reset` or `start.bat reset vote`) to drop SportCraft
+Club's current tournament first and run that stage from scratch. Only the tournament (poll, teams,
+positions, auction, matches, bracket) goes with it — the org and its 38 accounts stay put.
 
 | Role | Email | Password |
 |---|---|---|

@@ -15,6 +15,16 @@ export function randomSet(setNumber: number, pointsPerSet: number, winBy: number
 	return { setNumber, a, b, status: "completed" };
 }
 
+/** Shuffled sequence of `aPoints` "a" outcomes and `bPoints` "b" outcomes — a plausible point-by-point order for feeding through the real `addPoint` API instead of hand-writing a final score. */
+export function interleavedPointSequence(aPoints: number, bPoints: number): ("a" | "b")[] {
+	const seq: ("a" | "b")[] = [...Array(aPoints).fill("a" as const), ...Array(bPoints).fill("b" as const)];
+	for (let i = seq.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[seq[i], seq[j]] = [seq[j], seq[i]];
+	}
+	return seq;
+}
+
 export function simulateCompletedMatch(match: Match, setsToWin: number, pointsPerSet: number, winBy: number): void {
 	const sets: SetScore[] = [];
 	let setsA = 0, setsB = 0, n = 1;

@@ -9,18 +9,31 @@ REM   start.bat poll-closed    ... + close the poll
 REM   start.bat captains       ... + pick captains, name teams
 REM   start.bat positions      ... + categorize the remaining players
 REM   start.bat auction        ... + run the position auction to completion
-REM   start.bat schedule       ... + generate the round-robin schedule
-REM   start.bat live           ... + play some matches, leave one live
+REM   start.bat schedule       ... + generate the schedule, start one match live for real scoring
+REM   start.bat score          ... + fill in results for some of the other matches
+REM   start.bat live           ... + play out every remaining match
 REM   start.bat playoffs       ... + finish the group stage, generate the bracket
 REM
 REM Each stage picks up from wherever SportCraft Club last stopped - you can call a later stage on a
-REM fresh server to fast-forward, or an earlier/already-reached one as a no-op. Stop with stop.bat.
+REM fresh server to fast-forward, or an earlier/already-reached one as a no-op. Add "reset" (in either
+REM argument position) to drop SportCraft Club's tournament first and start that stage from scratch -
+REM the org and its 38 accounts stay put, only the tournament/poll/teams/matches/bracket get wiped.
+REM Stop with stop.bat.
 setlocal
 cd /d "%~dp0"
 
 set PORT=3100
-set STAGE=%~1
-if /i "%STAGE%"=="load-data" set STAGE=users
+set STAGE=
+set RESET=false
+for %%a in (%1 %2) do (
+	if /i "%%a"=="reset" (
+		set RESET=true
+	) else if /i "%%a"=="load-data" (
+		set STAGE=users
+	) else if not "%%a"=="" (
+		set STAGE=%%a
+	)
+)
 
 for /f %%r in ('powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue) { 'busy' } else { 'free' }"') do set PORT_STATE=%%r
 if "%PORT_STATE%"=="busy" (
@@ -48,9 +61,11 @@ exit /b 1
 :ready
 echo Dev server is up at http://localhost:%PORT%
 
+if "%STAGE%"=="" if "%RESET%"=="true" set STAGE=users
+
 if not "%STAGE%"=="" (
-	echo Seeding SportCraft Club test org up to stage "%STAGE%"...
-	curl -sf -X POST "http://localhost:%PORT%/api/dev/seed-sportcraft-club" -H "Content-Type: application/json" -d "{\"stage\":\"%STAGE%\"}"
+	echo Seeding SportCraft Club test org up to stage "%STAGE%" ^(reset: %RESET%^)...
+	curl -sf -X POST "http://localhost:%PORT%/api/dev/seed-sportcraft-club" -H "Content-Type: application/json" -d "{\"stage\":\"%STAGE%\",\"reset\":%RESET%}"
 	echo.
 	echo.
 	echo SportCraft Club is ready. Log in at http://localhost:%PORT%/ with:

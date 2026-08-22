@@ -14,14 +14,14 @@
 import { kvGetJSON, kvGetString, kvPutJSON } from "./kv";
 import { createCommunity, getCommunityBySlug } from "./community-store";
 import { createAccount, addMembership, listUsersByCommunity } from "./user-store";
-import { createTournament, getTournament, putTournament } from "./tournament-store";
+import { createTournament, getTournament, putTournament, deleteTournament } from "./tournament-store";
 import { openPoll, joinPoll, closePoll } from "./poll-store";
 import { setCaptainsAndNames, getTeams } from "./team-store";
 import { initPositions, finalizePositions } from "./position-store";
 import { startAuction, placeBid, resolveCurrent, getAuction, teamNeedsCategory } from "./auction-store";
-import { generateRoundRobinSchedule, getMatches, putMatches } from "./match-store";
+import { generateRoundRobinSchedule, getMatches, putMatches, addPoint } from "./match-store";
 import { generateBracket } from "./bracket-store";
-import { simulateCompletedMatch } from "./seed-fixtures";
+import { simulateCompletedMatch, interleavedPointSequence } from "./seed-fixtures";
 import { DEMO_PASSWORD } from "./seed-client-hint";
 import type { UserRecord, CommunityRole } from "./types";
 
@@ -32,7 +32,7 @@ export const SPORTCRAFT_CLUB_PASSWORD = DEMO_PASSWORD;
 export const SPORTCRAFT_CLUB_SUPER_ADMIN_EMAIL = "superadmin@sportcraftclub.local";
 export const SPORTCRAFT_CLUB_ORG_ADMIN_EMAIL = "orgadmin@sportcraftclub.local";
 
-export const STAGE_ORDER = ["users", "vote", "poll-closed", "captains", "positions", "auction", "schedule", "live", "playoffs"] as const;
+export const STAGE_ORDER = ["users", "vote", "poll-closed", "captains", "positions", "auction", "schedule", "score", "live", "playoffs"] as const;
 export type Stage = (typeof STAGE_ORDER)[number];
 
 function isStage(s: string): s is Stage {
@@ -158,29 +158,53 @@ async function advanceOneStage(state: SeedState): Promise<SeedState> {
 			return { ...state, stage: "auction" };
 		}
 		case "auction": {
-			await generateRoundRobinSchedule(state.tournamentId!, {
+			const tid = state.tournamentId!;
+			await generateRoundRobinSchedule(tid, {
 				venue: "SportCraft Club Fieldhouse",
 				courts: ["Court 1", "Court 2"],
 				times: ["17:00", "18:15"],
 				startDate: "2026-06-01",
 				daysBetween: 3,
 			});
+			// Starts the first scheduled match live through the REAL point-by-point scoring path
+			// (the same addPoint the admin scoring page calls) rather than hand-writing a score, so
+			// an Org Admin can open Live Scoring and keep adding points to a match already in progress.
+			const t = await getTournament(tid);
+			if (!t) throw new Error("tournament_not_found");
+			const matches = await getMatches(tid);
+			const first = matches.find((m) => m.status === "scheduled");
+			if (first) {
+				for (const side of interleavedPointSequence(14, 11)) {
+					await addPoint(tid, first.id, side, t.pointsPerSet, t.winBy);
+				}
+			}
 			return { ...state, stage: "schedule" };
 		}
 		case "schedule": {
+			// Fills in results for a batch of the OTHER matches so standings mean something, without
+			// touching the one already live from the previous step.
 			const tid = state.tournamentId!;
 			const t = await getTournament(tid);
 			if (!t) throw new Error("tournament_not_found");
 			const matches = await getMatches(tid);
-			for (let i = 0; i < 9 && i < matches.length; i++) {
-				simulateCompletedMatch(matches[i], t.setsToWin, t.pointsPerSet, t.winBy);
+			let completed = 0;
+			for (const m of matches) {
+				if (completed >= 9) break;
+				if (m.status === "scheduled") {
+					simulateCompletedMatch(m, t.setsToWin, t.pointsPerSet, t.winBy);
+					completed++;
+				}
 			}
-			if (matches[9]) {
-				matches[9].status = "live";
-				matches[9].sets = [
-					{ setNumber: 1, a: 25, b: 21, status: "completed" },
-					{ setNumber: 2, a: 14, b: 11, status: "in_progress" },
-				];
+			await putMatches(tid, matches);
+			return { ...state, stage: "score" };
+		}
+		case "score": {
+			const tid = state.tournamentId!;
+			const t = await getTournament(tid);
+			if (!t) throw new Error("tournament_not_found");
+			const matches = await getMatches(tid);
+			for (const m of matches) {
+				if (m.status !== "completed") simulateCompletedMatch(m, t.setsToWin, t.pointsPerSet, t.winBy);
 			}
 			await putMatches(tid, matches);
 			t.status = "in_progress";
@@ -191,11 +215,6 @@ async function advanceOneStage(state: SeedState): Promise<SeedState> {
 			const tid = state.tournamentId!;
 			const t = await getTournament(tid);
 			if (!t) throw new Error("tournament_not_found");
-			const matches = await getMatches(tid);
-			for (const m of matches) {
-				if (m.status !== "completed") simulateCompletedMatch(m, t.setsToWin, t.pointsPerSet, t.winBy);
-			}
-			await putMatches(tid, matches);
 			await generateBracket(tid, {
 				venue: "SportCraft Club Fieldhouse",
 				court: "Court 1",
@@ -220,12 +239,23 @@ export interface SportCraftClubSeedResult {
 	password: string;
 }
 
-export async function ensureSportCraftClubSeed(targetStageInput: string): Promise<SportCraftClubSeedResult> {
+/**
+ * `reset: true` drops SportCraft Club's tournament (via the real delete path — poll, teams, positions,
+ * auction, matches, bracket, notifications all go with it) and rewinds the seed state back to "users",
+ * keeping the org and its 38 accounts intact. Lets you re-run the lifecycle from scratch without
+ * touching any other local data (Meridian, or anything outside this one org).
+ */
+export async function ensureSportCraftClubSeed(targetStageInput: string, reset = false): Promise<SportCraftClubSeedResult> {
 	if (process.env.NODE_ENV === "production") throw new Error("dev_only");
 	const targetStage: Stage = isStage(targetStageInput) ? targetStageInput : "users";
 
 	let state = await loadState();
 	if (!state) state = await createOrgAndUsers();
+
+	if (reset) {
+		if (state.tournamentId) await deleteTournament(state.tournamentId);
+		state = { communityId: state.communityId, tournamentId: null, stage: "users" };
+	}
 	await saveState(state);
 
 	const targetIdx = STAGE_ORDER.indexOf(targetStage);
