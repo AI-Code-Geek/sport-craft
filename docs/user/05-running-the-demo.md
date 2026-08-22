@@ -22,8 +22,9 @@ disturbing the Meridian demo data.
 
 **macOS/Linux/Git Bash:**
 ```bash
-./start.sh              # start the dev server
-./start.sh load-data     # start the dev server, then seed "SportCraft Club"
+./start.sh              # start the dev server only
+./start.sh load-data    # ... + seed the org/users (1 Super Admin, 1 Org Admin, 36 players)
+./start.sh vote         # ... + create the tournament, open the poll, have everyone vote
 ./stop.sh                # stop it
 ```
 
@@ -31,22 +32,36 @@ disturbing the Meridian demo data.
 ```bat
 start.bat
 start.bat load-data
+start.bat vote
 stop.bat
 ```
 
-`load-data` calls a dev-only API route that creates one Super Admin, one Org Admin, and 36 players —
-all under a brand-new org called **SportCraft Club**, with every account using the same password.
-Running it again is safe — it's a no-op if SportCraft Club already exists.
+The argument names a **stage** in SportCraft Club's tournament lifecycle — each call picks up from
+wherever it last stopped and drives the real domain logic forward to that point, so the data stays
+internally consistent (same engine the Meridian seed uses, just resumable):
+
+| Stage | What it adds |
+|---|---|
+| `load-data` | The org + accounts only — no tournament yet (this is also the implicit first step of every later stage). |
+| `vote` | Tournament created, poll opened, all 36 players signed up. |
+| `poll-closed` | Poll closed. |
+| `captains` | 6 captains picked, teams named. |
+| `positions` | Remaining players categorized. |
+| `auction` | Position auction run to completion — every roster filled. |
+| `schedule` | Round-robin schedule generated. |
+| `live` | A few matches played, one left live. |
+| `playoffs` | Group stage finished, bracket generated. |
+
+Calling a **later** stage than SportCraft Club has reached fast-forwards through everything in
+between; calling the **same or an earlier** one than it's already at is a no-op — so `./start.sh live`
+on a fresh server runs the whole pipeline in one shot, and running it again just reports back the
+stage already reached.
 
 | Role | Email | Password |
 |---|---|---|
 | Super Admin | `superadmin@sportcraftclub.local` | `sportcraft2026` |
 | Org Admin | `orgadmin@sportcraftclub.local` | `sportcraft2026` |
 | Player (36 seeded accounts) | see `/app/sportcraft-club/admin/users` as the Org Admin for the full roster | `sportcraft2026` |
-
-SportCraft Club starts completely empty (no tournament yet) — log in as either admin and create one
-from scratch to walk through the poll → captains → positions → auction → schedule → scoring lifecycle
-yourself, instead of looking at Meridian's already-finished one.
 
 > Both the scripts and the seed route are **local-dev only** (guarded by `NODE_ENV !== "production"`,
 > same as the Meridian seed in `src/lib/seed.ts`) — neither ships any behavior reachable in production.

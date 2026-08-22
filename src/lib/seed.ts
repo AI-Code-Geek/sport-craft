@@ -15,7 +15,8 @@ import { initPositions, finalizePositions } from "./position-store";
 import { startAuction, placeBid, resolveCurrent, getAuction, teamNeedsCategory } from "./auction-store";
 import { generateRoundRobinSchedule, getMatches, putMatches } from "./match-store";
 import { DEMO_ADMIN_EMAIL, DEMO_PASSWORD } from "./seed-client-hint";
-import type { Match, SetScore, UserRecord, CommunityRole } from "./types";
+import { simulateCompletedMatch } from "./seed-fixtures";
+import type { UserRecord, CommunityRole } from "./types";
 
 /** Seed-only convenience: create an account and immediately give it an ACTIVE membership — seeded demo
  *  data bypasses the normal join-request approval queue entirely (there's no one to approve it against). */
@@ -36,34 +37,6 @@ function genName(i: number): string {
 }
 function genEmail(name: string, i: number): string {
 	return name.toLowerCase().replace(/[^a-z]+/g, ".") + i + "@sportcraft.demo";
-}
-
-function randomSet(setNumber: number, pointsPerSet: number, winBy: number): SetScore {
-	const aWins = Math.random() < 0.5;
-	const margin = winBy + Math.floor(Math.random() * 10);
-	let a: number, b: number;
-	if (aWins) {
-		a = pointsPerSet;
-		b = Math.max(0, pointsPerSet - margin);
-	} else {
-		b = pointsPerSet;
-		a = Math.max(0, pointsPerSet - margin);
-	}
-	return { setNumber, a, b, status: "completed" };
-}
-
-function simulateCompletedMatch(match: Match, setsToWin: number, pointsPerSet: number, winBy: number): void {
-	const sets: SetScore[] = [];
-	let setsA = 0, setsB = 0, n = 1;
-	while (Math.max(setsA, setsB) < setsToWin) {
-		const s = randomSet(n, pointsPerSet, winBy);
-		sets.push(s);
-		if (s.a > s.b) setsA++; else setsB++;
-		n++;
-	}
-	match.sets = sets;
-	match.status = "completed";
-	match.winnerTeamId = setsA > setsB ? match.teamAId : match.teamBId;
 }
 
 // In-process lock: within one Worker isolate / dev server process, concurrent requests (e.g. the

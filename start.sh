@@ -1,21 +1,30 @@
 #!/usr/bin/env bash
-# Start the local dev server in the background.
+# Start the local dev server in the background, optionally seeding "SportCraft Club" up to a stage.
 #
 # Usage:
-#   ./start.sh              start the dev server
-#   ./start.sh load-data    start the dev server, then seed "SportCraft Club"
-#                           (1 Super Admin, 1 Org Admin, 36 players — see output for credentials)
+#   ./start.sh                start the dev server only
+#   ./start.sh load-data      ... + seed the org/users (1 Super Admin, 1 Org Admin, 36 players)
+#   ./start.sh vote           ... + create the tournament, open the poll, have everyone vote
+#   ./start.sh poll-closed    ... + close the poll
+#   ./start.sh captains       ... + pick captains, name teams
+#   ./start.sh positions      ... + categorize the remaining players
+#   ./start.sh auction        ... + run the position auction to completion
+#   ./start.sh schedule       ... + generate the round-robin schedule
+#   ./start.sh live           ... + play some matches, leave one live
+#   ./start.sh playoffs       ... + finish the group stage, generate the bracket
 #
-# Stop it with ./stop.sh. Re-running load-data is safe — the seed is idempotent.
+# Each stage picks up from wherever SportCraft Club last stopped — you can call a later stage on a
+# fresh server to fast-forward, or an earlier/already-reached one as a no-op. Stop with ./stop.sh.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 PORT=3100
 PID_FILE=.dev-server.pid
 LOG_FILE=.dev-server.log
-LOAD_DATA=false
+STAGE=""
 for arg in "$@"; do
-	[ "$arg" = "load-data" ] && LOAD_DATA=true
+	[ "$arg" = "load-data" ] && STAGE="users" && continue
+	STAGE="$arg"
 done
 
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
@@ -43,9 +52,10 @@ if [ "$up" != true ]; then
 fi
 echo "Dev server is up at http://localhost:$PORT (pid $(cat "$PID_FILE"))"
 
-if [ "$LOAD_DATA" = true ]; then
-	echo "Seeding SportCraft Club test org..."
-	RESPONSE=$(curl -sf -X POST "http://localhost:$PORT/api/dev/seed-sportcraft-club")
+if [ -n "$STAGE" ]; then
+	echo "Seeding SportCraft Club test org up to stage '$STAGE'..."
+	RESPONSE=$(curl -sf -X POST "http://localhost:$PORT/api/dev/seed-sportcraft-club" \
+		-H "Content-Type: application/json" -d "{\"stage\":\"$STAGE\"}")
 	echo "$RESPONSE"
 	echo ""
 	echo "SportCraft Club is ready. Log in at http://localhost:$PORT/ with:"
