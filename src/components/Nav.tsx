@@ -20,6 +20,7 @@ const PARTICIPANT_LINKS: [string, string, FeatureKey | null][] = [
 	["schedule", "Schedule", "scheduler"],
 	["standings", "Standings", "scheduler"],
 	["bracket", "Bracket", "brackets"],
+	["archive", "Archive", null],
 	["help", "Help", null],
 ];
 
@@ -92,6 +93,7 @@ export function Nav() {
 	const isOrgAdmin = role?.isOrgAdmin ?? false;
 
 	const activeMemberships = memberships.filter((m) => m.status === "active");
+	const currentOrgName = activeMemberships.find((m) => m.communityId === communityId)?.communityName ?? null;
 
 	const initials = (user?.name ?? "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
 
@@ -114,6 +116,12 @@ export function Nav() {
 				<Link href="/app" className="shrink-0 font-extrabold tracking-tight">
 					🏐 Sport<span className="text-brand">Craft</span>
 				</Link>
+				{currentOrgName ? (
+					<span className="flex min-w-0 shrink items-center gap-2 text-sm">
+						<span className="text-border">/</span>
+						<span className="truncate font-medium text-muted" title={currentOrgName}>{currentOrgName}</span>
+					</span>
+				) : null}
 				<div className="hidden gap-4 md:flex">{links}</div>
 				<div className="ml-auto flex min-w-0 items-center gap-2">
 					{isPlatformSuperAdmin || isOrgAdmin ? (

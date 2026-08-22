@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchMe, getTournament, getPoll, getTeams, getSchedule } from "@/lib/api-client";
+import { fetchMe, getTournament, getPoll, getTeams, getSchedule, getBracket } from "@/lib/api-client";
 import type { PollEntryView } from "@/lib/api-client";
 import { Card, LifecycleStepper, TeamChip } from "@/components/ui";
 import { tournamentStatusLabel } from "@/lib/format";
@@ -21,6 +21,7 @@ export default function OrgHomePage() {
 	const [myTeam, setMyTeam] = useState<Team | null>(null);
 	const [teams, setTeams] = useState<Team[]>([]);
 	const [liveMatch, setLiveMatch] = useState<Match | null>(null);
+	const [champion, setChampion] = useState<Team | null>(null);
 
 	useEffect(() => {
 		fetchMe().then(async ({ data }) => {
@@ -32,11 +33,12 @@ export default function OrgHomePage() {
 			}
 			setRole(data.roleContext ?? null);
 
-			const [{ data: t }, { data: p }, { data: teams }, { data: sched }] = await Promise.all([
+			const [{ data: t }, { data: p }, { data: teams }, { data: sched }, { data: br }] = await Promise.all([
 				getTournament(data.tournamentId),
 				getPoll(data.tournamentId),
 				getTeams(data.tournamentId),
 				getSchedule(data.tournamentId),
+				getBracket(data.tournamentId),
 			]);
 			setTournament(t.tournament ?? null);
 			setMyEntry(p.poll?.entries.find((e) => e.userId === data.user!.userid) ?? null);
@@ -44,6 +46,13 @@ export default function OrgHomePage() {
 			setTeams(teams.teams ?? []);
 			setMyTeam(teams.teams?.find((tm) => tm.roster.some((r) => r.userId === data.user!.userid)) ?? null);
 			setLiveMatch(sched.matches?.find((m) => m.status === "live") ?? null);
+			if (t.tournament?.status === "completed" && br.bracket) {
+				const finalRound = br.bracket.rounds[br.bracket.rounds.length - 1];
+				const finalMatchId = finalRound?.matches[0]?.matchId;
+				const finalMatch = finalMatchId ? sched.matches?.find((m) => m.id === finalMatchId) : null;
+				const championId = finalMatch?.winnerTeamId ?? null;
+				setChampion(championId ? teams.teams?.find((tm) => tm.id === championId) ?? null : null);
+			}
 			setPhase("ready");
 		});
 	}, []);
@@ -114,6 +123,16 @@ export default function OrgHomePage() {
 				</Card>
 			) : null}
 
+			{champion ? (
+				<Card>
+					<div className="flex flex-col items-center gap-2 py-4 text-center">
+						<div className="text-3xl">🏆</div>
+						<div className="text-xs font-semibold tracking-wide text-muted uppercase">Tournament complete — Champion</div>
+						<TeamChip id={champion.id} name={champion.name} color={champion.color} link={false} />
+					</div>
+				</Card>
+			) : null}
+
 			{liveMatch ? (
 				<Card>
 					<div className="flex flex-wrap items-center justify-between gap-3">
@@ -156,6 +175,11 @@ export default function OrgHomePage() {
 								<span className="mr-1 inline-block h-2 w-2 rounded-full bg-bad align-middle live-pulse" /> A match is live right now.
 							</p>
 							<Link href={`/app/${org}/matches/${liveMatch.id}`} className="btn-danger w-fit">Watch live →</Link>
+						</div>
+					) : tournament.status === "completed" ? (
+						<div className="flex flex-col gap-3">
+							<p className="text-sm">This tournament is complete — check out the final bracket and standings.</p>
+							<Link href={`/app/${org}/bracket`} className="btn-secondary w-fit">View bracket →</Link>
 						</div>
 					) : (
 						<div className="flex flex-col gap-3">
