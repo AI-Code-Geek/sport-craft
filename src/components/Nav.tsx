@@ -20,6 +20,7 @@ const PARTICIPANT_LINKS: [string, string, FeatureKey | null][] = [
 	["schedule", "Schedule", "scheduler"],
 	["standings", "Standings", "scheduler"],
 	["bracket", "Bracket", "brackets"],
+	["help", "Help", null],
 ];
 
 export function Nav() {
