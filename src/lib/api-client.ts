@@ -127,7 +127,9 @@ export const generateSchedule = (id: string, config: { venue: string; courts: st
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
 export const getMatch = (id: string, matchId: string) => get<{ match: Match }>(`/api/tournaments/${id}/matches/${matchId}`);
-export const scoreAction = (id: string, matchId: string, action: "point" | "undo" | "nextset" | "end", side?: "a" | "b") =>
+export const rescheduleMatch = (id: string, matchId: string, updates: { scheduledAt?: string; venue?: string; court?: string }) =>
+	patch<{ match: Match }>(`/api/tournaments/${id}/matches/${matchId}`, updates);
+export const scoreAction = (id: string, matchId: string, action: "start" | "point" | "undo" | "nextset" | "end" | "reopen", side?: "a" | "b") =>
 	post<{ match: Match }>(`/api/tournaments/${id}/matches/${matchId}/score`, { action, side });
 
 // ── Standings / bracket ───────────────────────────────────────────────────────

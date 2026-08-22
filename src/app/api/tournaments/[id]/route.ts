@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 	if (!tournament || tournament.communityId !== session.communityId) return json({ error: "not_found" }, 404);
 	if (!(await canManageTournament(id, session))) return json({ error: "forbidden" }, 403);
 
-	let body: Partial<Record<"name" | "setsToWin" | "pointsPerSet" | "winBy" | "playoffTeamCount" | "guidelines", unknown>>;
+	let body: Partial<Record<"name" | "setsToWin" | "pointsPerSet" | "winBy" | "winPoints" | "playoffTeamCount" | "guidelines", unknown>>;
 	try {
 		body = (await req.json()) as typeof body;
 	} catch {
@@ -34,6 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 	if (typeof body.setsToWin === "number") tournament.setsToWin = body.setsToWin;
 	if (typeof body.pointsPerSet === "number") tournament.pointsPerSet = body.pointsPerSet;
 	if (typeof body.winBy === "number") tournament.winBy = body.winBy;
+	if (typeof body.winPoints === "number") tournament.winPoints = body.winPoints;
 	if (typeof body.playoffTeamCount === "number") tournament.playoffTeamCount = body.playoffTeamCount;
 	if (typeof body.guidelines === "string") tournament.guidelines = body.guidelines.trim() || null;
 

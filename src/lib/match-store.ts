@@ -127,6 +127,19 @@ export async function addPlayoffMatch(
 	return match;
 }
 
+/** Edit one match's date/time, venue, or court after the schedule's been generated — doesn't touch its score. */
+export async function rescheduleMatch(
+	tournamentId: string,
+	matchId: string,
+	updates: { scheduledAt?: string; venue?: string; court?: string },
+): Promise<Match> {
+	return updateMatch(tournamentId, matchId, (match) => {
+		if (updates.scheduledAt !== undefined) match.scheduledAt = updates.scheduledAt;
+		if (updates.venue !== undefined) match.venue = updates.venue;
+		if (updates.court !== undefined) match.court = updates.court;
+	});
+}
+
 // ── Live scoring ──────────────────────────────────────────────────────────────
 
 async function updateMatch(tournamentId: string, matchId: string, fn: (m: Match) => void): Promise<Match> {
@@ -140,6 +153,15 @@ async function updateMatch(tournamentId: string, matchId: string, fn: (m: Match)
 
 function setsWon(match: Match, side: "a" | "b"): number {
 	return match.sets.filter((s) => s.status === "completed" && (side === "a" ? s.a > s.b : s.b > s.a)).length;
+}
+
+/** Marks a scheduled match live at 0-0 — lets the Org Admin start it before adding any points. A no-op if it's already live or further along. */
+export async function startMatch(tournamentId: string, matchId: string): Promise<Match> {
+	return updateMatch(tournamentId, matchId, (match) => {
+		if (match.status !== "scheduled") return;
+		match.status = "live";
+		match.sets = [{ setNumber: 1, a: 0, b: 0, status: "in_progress" }];
+	});
 }
 
 export async function addPoint(tournamentId: string, matchId: string, side: "a" | "b", pointsPerSet: number, winBy: number): Promise<Match> {
@@ -174,8 +196,25 @@ export async function startNextSet(tournamentId: string, matchId: string, setsTo
 	});
 }
 
+/** Undoes "End match" — reopens the last set for editing and clears the winner, so a scoring mistake
+ *  can be fixed with the normal point controls and the match ended again once it's right. */
+export async function reopenMatch(tournamentId: string, matchId: string): Promise<Match> {
+	return updateMatch(tournamentId, matchId, (match) => {
+		if (match.status !== "completed") return;
+		match.status = "live";
+		match.winnerTeamId = null;
+		const last = match.sets[match.sets.length - 1];
+		if (last && last.status === "completed") last.status = "in_progress";
+	});
+}
+
 export async function endMatch(tournamentId: string, matchId: string): Promise<Match> {
 	return updateMatch(tournamentId, matchId, (match) => {
+		// Ending mid-set (early stoppage, forfeit, etc.) must still finalize that set with whatever
+		// points it has — otherwise it stays "in_progress" forever and never counts toward sets won,
+		// making a fully-scored match look like a 0-0 wipe.
+		const cur = match.sets[match.sets.length - 1];
+		if (cur && cur.status === "in_progress") cur.status = "completed";
 		match.status = "completed";
 		const a = setsWon(match, "a");
 		const b = setsWon(match, "b");

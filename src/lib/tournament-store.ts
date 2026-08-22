@@ -23,6 +23,7 @@ export interface CreateTournamentInput {
 	setsToWin: number;
 	pointsPerSet: number;
 	winBy: number;
+	winPoints?: number;
 	playoffTeamCount: number;
 	createdBy: string;
 }
@@ -40,6 +41,7 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
 		setsToWin: input.setsToWin,
 		pointsPerSet: input.pointsPerSet,
 		winBy: input.winBy,
+		winPoints: input.winPoints ?? 2,
 		playoffTeamCount: input.playoffTeamCount,
 		pollOpenedAt: null,
 		pollClosedAt: null,

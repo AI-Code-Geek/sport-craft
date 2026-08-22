@@ -199,12 +199,14 @@ async function advanceOneStage(state: SeedState): Promise<SeedState> {
 			return { ...state, stage: "score" };
 		}
 		case "score": {
+			// Only finishes still-"scheduled" matches — the one already live from the "auction" step
+			// stays live indefinitely, so the Org Admin can keep scoring it themselves.
 			const tid = state.tournamentId!;
 			const t = await getTournament(tid);
 			if (!t) throw new Error("tournament_not_found");
 			const matches = await getMatches(tid);
 			for (const m of matches) {
-				if (m.status !== "completed") simulateCompletedMatch(m, t.setsToWin, t.pointsPerSet, t.winBy);
+				if (m.status === "scheduled") simulateCompletedMatch(m, t.setsToWin, t.pointsPerSet, t.winBy);
 			}
 			await putMatches(tid, matches);
 			t.status = "in_progress";

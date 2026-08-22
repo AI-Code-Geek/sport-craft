@@ -33,10 +33,21 @@ export default function SchedulePage() {
 		.filter((m) => !statusFilter || m.status === statusFilter)
 		.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
 
+	/** Best-of-1 (or not-yet-into-a-second-set) shows the raw point score; multi-set shows sets won. */
 	function scoreLabel(m: Match) {
+		if (m.sets.length <= 1) {
+			const only = m.sets[0];
+			return only ? `${only.a}–${only.b}` : "—";
+		}
 		const a = m.sets.filter((s) => s.status === "completed" && s.a > s.b).length;
 		const b = m.sets.filter((s) => s.status === "completed" && s.b > s.a).length;
 		return `${a}–${b}`;
+	}
+
+	/** Per-set point breakdown, shown alongside the sets-won score once there's more than one set. */
+	function setsLabel(m: Match) {
+		if (m.sets.length <= 1) return "—";
+		return m.sets.map((s) => `${s.a}-${s.b}`).join(", ");
 	}
 
 	return (
@@ -71,13 +82,15 @@ export default function SchedulePage() {
 								<th className="pb-2 pr-2">Matchup</th>
 								<th className="pb-2 pr-2">Venue</th>
 								<th className="pb-2 pr-2">Status</th>
-								<th className="pb-2 text-right">Score</th>
+								<th className="pb-2 pr-2 text-right">Score</th>
+								<th className="pb-2 text-right">Sets</th>
 							</tr>
 						</thead>
 						<tbody>
 							{filtered.map((m) => {
 								const a = teamOf.get(m.teamAId);
 								const b = teamOf.get(m.teamBId);
+								const played = m.status === "completed" || m.status === "live";
 								return (
 									<tr key={m.id} className="cursor-pointer border-t border-border hover:bg-surface-2" onClick={() => (window.location.href = `/app/${org}/matches/${m.id}`)}>
 										<td className="py-2 pr-2 text-xs">{fmtDateTime(m.scheduledAt)}</td>
@@ -90,11 +103,12 @@ export default function SchedulePage() {
 										</td>
 										<td className="py-2 pr-2 text-xs text-muted">{m.venue} · {m.court}</td>
 										<td className="py-2 pr-2"><StatusBadge status={m.status} /></td>
-										<td className="py-2 text-right mono">{m.status === "completed" || m.status === "live" ? scoreLabel(m) : "—"}</td>
+										<td className="py-2 pr-2 text-right mono">{played ? scoreLabel(m) : "—"}</td>
+										<td className="py-2 text-right mono text-xs text-muted">{played ? setsLabel(m) : "—"}</td>
 									</tr>
 								);
 							})}
-							{filtered.length === 0 ? <tr><td colSpan={5} className="py-6 text-center text-muted">No matches match these filters.</td></tr> : null}
+							{filtered.length === 0 ? <tr><td colSpan={6} className="py-6 text-center text-muted">No matches match these filters.</td></tr> : null}
 						</tbody>
 					</table>
 				</div>

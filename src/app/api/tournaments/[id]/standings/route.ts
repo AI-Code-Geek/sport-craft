@@ -15,6 +15,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	if (!tournament || tournament.communityId !== session.communityId) return json({ error: "not_found" }, 404);
 
 	const [teams, matches] = await Promise.all([getTeams(id), getMatches(id)]);
-	const standings = computeStandings(teams, matches);
+	const standings = computeStandings(teams, matches, tournament.winPoints);
 	return json({ standings, playoffTeamCount: tournament.playoffTeamCount });
 }
