@@ -33,14 +33,18 @@ category currently up for auction) with quick +5/+10 buttons or a custom amount.
 
 ## Schedule (`/app/schedule`) & live matches (`/app/matches/[id]`)
 
-Full match schedule, filterable by team/day/round. Click into any match for a **live scoreboard**
-(auto-refreshes while the match is in progress) or the final result once it's done.
+Full match schedule, filterable by team/day/round. The **Score** column shows the raw point score for
+a one-set match, or the sets-won tally once a match has gone past one set — with a **Sets** column
+alongside showing every set's score (e.g. "25-21, 18-25, 15-10"). Click into any match for a **live
+scoreboard** (auto-refreshes while the match is in progress) or the final result once it's done.
 
 ## Standings (`/app/standings`) & Bracket (`/app/bracket`)
 
 Standings recompute automatically every time a match finishes — no need to refresh anything by hand.
-Ties break in order: league points → set ratio → head-to-head → point differential. Once the group
-stage wraps up, the Org Admin generates the playoff bracket and it shows up here, seeded from the
+Sets won and sets lost are their own columns, alongside a point **Diff** (points for minus points
+against, color-coded). Ties break in order: league points (the Org Admin sets how many a win is worth
+when generating the schedule — 2 by default) → set ratio → head-to-head → point differential. Once the
+group stage wraps up, the Org Admin generates the playoff bracket and it shows up here, seeded from the
 standings.
 
 ## Profile (`/app/profile`)

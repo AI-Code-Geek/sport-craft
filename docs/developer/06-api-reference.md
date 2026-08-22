@@ -58,8 +58,8 @@ Admin — see [`03-auth-and-roles.md`](./03-auth-and-roles.md)).
 | `/api/tournaments/[id]/auction/resolve` | POST | Org Admin | Force-resolve the current nominee. |
 | `/api/tournaments/[id]/auction/skip` | POST | Org Admin | Skip the current nominee. |
 | `/api/tournaments/[id]/schedule` | GET / POST | Any / Org Admin | Read schedule; generate/regenerate it. |
-| `/api/tournaments/[id]/matches/[matchId]` | GET | Any | One match's detail. |
-| `/api/tournaments/[id]/matches/[matchId]/score` | POST | Org Admin | `{action: "point"\|"undo"\|"nextset"\|"end", side?}`. |
+| `/api/tournaments/[id]/matches/[matchId]` | GET / PATCH | Any / Org Admin | One match's detail; `{scheduledAt?, venue?, court?}` to reschedule it (score untouched). |
+| `/api/tournaments/[id]/matches/[matchId]/score` | POST | Org Admin | `{action: "start"\|"point"\|"undo"\|"nextset"\|"end"\|"reopen", side?}`. `start` marks a scheduled match live at 0-0; `reopen` undoes `end` (reopens the last set, clears the winner) so a mis-scored match can be corrected and ended again. |
 | `/api/tournaments/[id]/standings` | GET | Any | Computed standings table. |
 | `/api/tournaments/[id]/bracket` | GET / POST | Any / Org Admin | Read bracket; generate it. |
 | `/api/tournaments/[id]/notifications` | GET / POST | Any | Read this user's visible notifications; mark seen. |
