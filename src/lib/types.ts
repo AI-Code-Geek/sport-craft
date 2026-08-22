@@ -173,6 +173,8 @@ export interface Tournament {
 	setsToWin: number;
 	pointsPerSet: number;
 	winBy: number;
+	/** League points awarded for a match win (standings tie-break §2) — set from the Schedule generator. */
+	winPoints: number;
 	playoffTeamCount: number;
 	pollOpenedAt: string | null;
 	pollClosedAt: string | null;

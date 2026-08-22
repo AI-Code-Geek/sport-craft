@@ -53,13 +53,33 @@ round ever share a `(court, time)` pair, **as long as** `courts.length * times.l
 (max round size is `floor(teamCount / 2)`) — under-provisioning courts/times for the team count you
 have will silently double-book a slot rather than error, so size them generously.
 
+## Live scoring status (`src/lib/match-store.ts`)
+
+`Match.status` only ever moves forward through `scheduled → live → completed`, and only in response to
+an explicit Org Admin action — nothing (a cron, `scheduledAt` passing, a page load) flips it on its own:
+
+- `startMatch` — `scheduled → live` at 0-0, one empty `in_progress` set. Lets the Admin Schedule page's
+  "Start match" button put a match on the board before anyone's scored a point.
+- `addPoint` — also flips `scheduled → live` itself (on the first point), so scoring still works even if
+  a match was never explicitly started first.
+- `endMatch` — `live → completed`. Finalizes whatever set is still `in_progress` first (marks it
+  `completed` with its current point tally) before tallying sets won — otherwise a match ended mid-set
+  would keep that set `in_progress` forever, so `computeStandings`'s sets-won count (which only counts
+  `completed` sets) would silently read 0-0 even though real points were recorded.
+- `reopenMatch` — undoes `endMatch`: `completed → live`, reopens the last set for editing, clears
+  `winnerTeamId`. This is the correction path for a mis-scored match — fix it with the normal point
+  controls, then `endMatch` again. Note: if that match already fed a bracket round (`advanceBracket`
+  already propagated its winner), correcting it here does **not** retract that propagation.
+
 ## Standings (`src/lib/standings.ts`)
 
 Computed fresh from `matches` + `teams` on every read — **never persisted**, so there's no
 derived-cache to go stale. Only `round: "group"` + `status: "completed"` matches count.
 
 **Tie-break order**, each step only breaking ties left by the previous one:
-1. **League points** (win = 2, loss = 0 — not currently configurable per tournament).
+1. **League points** (win = `tournament.winPoints`, loss = 0 — set from the Schedule generator, defaults
+   to 2; `computeStandings(teams, matches, winPoints)` takes it as a parameter, defaulting to 2 for any
+   caller that omits it).
 2. **Set ratio** (`setsWon / setsLost`; a team with zero sets lost gets a large-but-finite ratio
    `setsWon * 1000`, not `Infinity`, so multiple undefeated teams still compare sensibly against each
    other by sets won).

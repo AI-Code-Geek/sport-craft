@@ -59,7 +59,7 @@ export async function generateBracket(tournamentId: string, config: BracketConfi
 	if (!SUPPORTED_PLAYOFF_COUNTS.includes(n as 2 | 4 | 8)) throw new Error("unsupported_playoff_count");
 
 	const [teams, matches] = await Promise.all([getTeams(tournamentId), getMatches(tournamentId)]);
-	const standings = computeStandings(teams, matches);
+	const standings = computeStandings(teams, matches, t.winPoints);
 	const top = standings.slice(0, n);
 	if (top.length < n) throw new Error("not_enough_standings");
 

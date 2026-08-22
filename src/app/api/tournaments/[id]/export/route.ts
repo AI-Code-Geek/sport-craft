@@ -41,7 +41,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	const nameOf = new Map(members.map((u) => [u.userid, u.name]));
 	const withName = (userId: string) => ({ userId, name: nameOf.get(userId) ?? userId });
 
-	const standings = computeStandings(teams, matches).map((row) => ({
+	const standings = computeStandings(teams, matches, tournament.winPoints).map((row) => ({
 		...row,
 		teamName: teams.find((t) => t.id === row.teamId)?.name ?? row.teamId,
 	}));

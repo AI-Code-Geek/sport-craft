@@ -38,15 +38,18 @@ export default function StandingsPage() {
 								<th className="pb-2 pr-2 text-right">P</th>
 								<th className="pb-2 pr-2 text-right">W</th>
 								<th className="pb-2 pr-2 text-right">L</th>
-								<th className="pb-2 pr-2 text-right">Sets</th>
+								<th className="pb-2 pr-2 text-right">Sets W</th>
+								<th className="pb-2 pr-2 text-right">Sets L</th>
 								<th className="pb-2 pr-2 text-right">Pts For</th>
 								<th className="pb-2 pr-2 text-right">Pts Against</th>
+								<th className="pb-2 pr-2 text-right">Diff</th>
 								<th className="pb-2 text-right">League Pts</th>
 							</tr>
 						</thead>
 						<tbody>
 							{standings.map((s) => {
 								const team = teamOf.get(s.teamId);
+								const diff = s.pointsFor - s.pointsAgainst;
 								return (
 									<Fragment key={s.teamId}>
 										<tr className={`border-t border-border ${s.rank === cutoff ? "bg-warn/8" : ""}`}>
@@ -55,20 +58,22 @@ export default function StandingsPage() {
 											<td className="py-2 pr-2 text-right mono">{s.played}</td>
 											<td className="py-2 pr-2 text-right mono">{s.won}</td>
 											<td className="py-2 pr-2 text-right mono">{s.lost}</td>
-											<td className="py-2 pr-2 text-right mono">{s.setsWon}-{s.setsLost}</td>
+											<td className="py-2 pr-2 text-right mono">{s.setsWon}</td>
+											<td className="py-2 pr-2 text-right mono">{s.setsLost}</td>
 											<td className="py-2 pr-2 text-right mono">{s.pointsFor}</td>
 											<td className="py-2 pr-2 text-right mono">{s.pointsAgainst}</td>
+											<td className={`py-2 pr-2 text-right mono ${diff > 0 ? "text-ok" : diff < 0 ? "text-bad" : ""}`}>{diff > 0 ? "+" : ""}{diff}</td>
 											<td className="py-2 text-right mono font-bold">{s.leaguePoints}</td>
 										</tr>
 										{s.rank === cutoff ? (
 											<tr>
-												<td colSpan={9} className="py-1 text-center text-xs text-muted">— playoff cutoff line (top {cutoff}) —</td>
+												<td colSpan={11} className="py-1 text-center text-xs text-muted">— playoff cutoff line (top {cutoff}) —</td>
 											</tr>
 										) : null}
 									</Fragment>
 								);
 							})}
-							{standings.length === 0 ? <tr><td colSpan={9} className="py-6 text-center text-muted">No completed matches yet.</td></tr> : null}
+							{standings.length === 0 ? <tr><td colSpan={11} className="py-6 text-center text-muted">No completed matches yet.</td></tr> : null}
 						</tbody>
 					</table>
 				</div>

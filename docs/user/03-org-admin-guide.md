@@ -48,14 +48,32 @@ nobody bid — so the auction never stalls), **skip** a nominee, or **pause/resu
 
 ### 6. Schedule — `/app/admin/schedule`
 
-Pick venue(s), court(s), time slot(s), a start date, and days between rounds, then **generate**. Builds
+Pick venue(s), court(s), a start time, each match's duration, a start date, days between rounds, and
+league points per win, then **generate**. Match times fill your courts starting at the start time, then
+move to the next slot after each match's duration — no need to type out every time slot by hand. Builds
 a full round-robin with no team double-booked in a slot. You can regenerate before publishing if
-something looks off.
+something looks off (re-generating replaces the whole schedule, so any in-progress live match goes with
+it).
+
+Once published, every row has an **Edit** button (adjust that one match's date/time or court without
+regenerating everything) and an **Action** button that jumps straight into Live Scoring — "Start match"
+for a scheduled one, "Continue scoring" once it's live, or "Fix score" to correct a completed one.
+
+A match's scheduled time is display-only — nothing starts it automatically. It stays `scheduled`
+until you actually add its first point (whether early, late, or exactly on time makes no difference).
 
 ### 7. Live scoring — `/app/admin/scoring`
 
-Pick a match, enter points set-by-set as it happens. Standings update automatically the moment a match
-completes — no separate step.
+Pick a match from the dropdown (or arrive already on one via the Schedule page's Action column) — it
+lists live and scheduled matches first, completed ones last (tagged `· FINAL`). Enter points set-by-set
+as it happens; the first point is what moves a match from `scheduled` to `live` if you didn't already
+hit "Start match". **End match** asks for confirmation first, then finalizes whatever set is still in
+progress with its current score (so ending mid-set doesn't erase the points already scored).
+
+Made a mistake after ending a match? Select it (`· FINAL`) and hit **Reopen match (fix score)** — the
+last set reopens for editing with the normal +1/-1 controls, then end it again once it's right.
+
+Standings update automatically the moment a match completes — no separate step.
 
 ### 8. Playoffs — `/app/admin/playoffs`
 

@@ -5,7 +5,7 @@
  */
 import type { Match, StandingsRow, Team } from "./types";
 
-export function computeStandings(teams: Team[], matches: Match[]): StandingsRow[] {
+export function computeStandings(teams: Team[], matches: Match[], winPoints = 2): StandingsRow[] {
 	const rows = new Map<string, StandingsRow>();
 	for (const t of teams) {
 		rows.set(t.id, {
@@ -33,9 +33,9 @@ export function computeStandings(teams: Team[], matches: Match[]): StandingsRow[
 		b.pointsFor += ptsB; b.pointsAgainst += ptsA;
 
 		if (m.winnerTeamId === m.teamAId) {
-			a.won++; b.lost++; a.leaguePoints += 2;
+			a.won++; b.lost++; a.leaguePoints += winPoints;
 		} else if (m.winnerTeamId === m.teamBId) {
-			b.won++; a.lost++; b.leaguePoints += 2;
+			b.won++; a.lost++; b.leaguePoints += winPoints;
 		}
 		if (m.winnerTeamId) {
 			const loser = m.winnerTeamId === m.teamAId ? m.teamBId : m.teamAId;
